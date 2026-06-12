@@ -1,0 +1,1268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>G-MScreen Web — STB Controller</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.6.0/dist/tabler-icons.min.css">
+<style>
+  :root {
+    --bg: #0d0e12;
+    --surface: #161820;
+    --surface2: #1e2130;
+    --surface3: #252840;
+    --accent: #3b82f6;
+    --accent2: #6366f1;
+    --green: #22c55e;
+    --red: #ef4444;
+    --amber: #f59e0b;
+    --text: #e8eaf6;
+    --text2: #8b8fa8;
+    --text3: #5a5f7a;
+    --border: rgba(255,255,255,0.08);
+    --border2: rgba(255,255,255,0.14);
+    --radius: 10px;
+    --radius-sm: 6px;
+    --radius-lg: 14px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    font-size: 14px;
+    overflow-x: hidden;
+  }
+  /* ── LAYOUT ── */
+  .shell { display: grid; grid-template-columns: 220px 1fr; grid-template-rows: 52px 1fr; height: 100vh; overflow: hidden; }
+  .topbar {
+    grid-column: 1 / -1;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 12px; padding: 0 16px;
+  }
+  .topbar-logo { font-size: 17px; font-weight: 700; color: var(--accent); letter-spacing: -.5px; display: flex; align-items: center; gap: 8px; }
+  .topbar-logo i { font-size: 22px; color: var(--accent2); }
+  .topbar-divider { width: 1px; height: 22px; background: var(--border2); margin: 0 4px; }
+  .stb-badge {
+    display: flex; align-items: center; gap: 6px;
+    background: var(--surface2); border: 1px solid var(--border); border-radius: 20px;
+    padding: 4px 12px; font-size: 12px; cursor: pointer;
+    transition: border-color .2s;
+  }
+  .stb-badge:hover { border-color: var(--accent); }
+  .stb-badge .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--text3); transition: background .4s; }
+  .stb-badge .dot.online { background: var(--green); box-shadow: 0 0 6px var(--green); }
+  .topbar-right { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+  .signal-bar { display: flex; align-items: flex-end; gap: 2px; height: 18px; }
+  .signal-bar span {
+    width: 4px; background: var(--text3); border-radius: 1px;
+    transition: background .5s, height .5s;
+  }
+  .signal-bar span.active { background: var(--green); }
+  .icon-btn {
+    width: 34px; height: 34px; border-radius: var(--radius-sm);
+    background: transparent; border: 1px solid var(--border);
+    color: var(--text2); cursor: pointer; display: flex; align-items: center;
+    justify-content: center; transition: background .15s, color .15s;
+  }
+  .icon-btn:hover { background: var(--surface2); color: var(--text); }
+  /* ── SIDEBAR ── */
+  .sidebar {
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    overflow-y: auto; overflow-x: hidden;
+    display: flex; flex-direction: column;
+  }
+  .sidebar::-webkit-scrollbar { width: 4px; }
+  .sidebar::-webkit-scrollbar-track { background: transparent; }
+  .sidebar::-webkit-scrollbar-thumb { background: var(--surface3); border-radius: 4px; }
+  .nav-section { padding: 10px 8px 4px; font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: var(--text3); }
+  .nav-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 12px; border-radius: var(--radius-sm); margin: 1px 6px;
+    cursor: pointer; color: var(--text2); transition: all .15s; font-size: 13px;
+    user-select: none;
+  }
+  .nav-item:hover { background: var(--surface2); color: var(--text); }
+  .nav-item.active { background: rgba(59,130,246,.15); color: var(--accent); }
+  .nav-item i { font-size: 17px; flex-shrink: 0; }
+  .nav-badge {
+    margin-left: auto; font-size: 10px; background: var(--accent);
+    color: #fff; border-radius: 10px; padding: 1px 6px; font-weight: 600;
+  }
+  /* ── MAIN PANELS ── */
+  .main { overflow-y: auto; overflow-x: hidden; background: var(--bg); }
+  .main::-webkit-scrollbar { width: 4px; }
+  .main::-webkit-scrollbar-thumb { background: var(--surface2); border-radius: 4px; }
+  .panel { display: none; padding: 20px; height: 100%; }
+  .panel.active { display: block; }
+  .panel-header { font-size: 17px; font-weight: 600; margin-bottom: 16px; display: flex; align-items: center; gap: 10px; }
+  .panel-header i { color: var(--accent); font-size: 22px; }
+  /* ── CONNECT PANEL ── */
+  .connect-wrap {
+    max-width: 440px; margin: 60px auto;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius-lg); padding: 32px;
+  }
+  .connect-logo { text-align: center; margin-bottom: 28px; }
+  .connect-logo i { font-size: 48px; color: var(--accent); }
+  .connect-logo h1 { font-size: 22px; font-weight: 700; color: var(--text); margin-top: 8px; }
+  .connect-logo p { color: var(--text2); font-size: 13px; margin-top: 4px; }
+  .field { margin-bottom: 14px; }
+  .field label { display: block; font-size: 12px; color: var(--text2); margin-bottom: 5px; }
+  .field input, .field select {
+    width: 100%; background: var(--surface2); border: 1px solid var(--border2);
+    border-radius: var(--radius-sm); padding: 9px 12px; color: var(--text);
+    font-size: 14px; outline: none; transition: border-color .2s;
+  }
+  .field input:focus, .field select:focus { border-color: var(--accent); }
+  .field select option { background: var(--surface2); }
+  .btn-primary {
+    width: 100%; background: var(--accent); border: none; border-radius: var(--radius);
+    color: #fff; font-size: 14px; font-weight: 600; padding: 11px;
+    cursor: pointer; transition: opacity .15s, transform .1s;
+  }
+  .btn-primary:hover { opacity: .9; }
+  .btn-primary:active { transform: scale(.99); }
+  .stb-list-grid { display: grid; gap: 8px; margin-top: 10px; }
+  .stb-card {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 10px 14px;
+    display: flex; align-items: center; gap: 10px; cursor: pointer;
+    transition: border-color .2s;
+  }
+  .stb-card:hover { border-color: var(--accent); }
+  .stb-card i { font-size: 20px; color: var(--accent2); }
+  .stb-card .stb-name { font-size: 13px; font-weight: 500; }
+  .stb-card .stb-ip { font-size: 11px; color: var(--text3); }
+  /* ── CHANNEL LIST ── */
+  .search-bar {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 8px 12px; margin-bottom: 14px;
+  }
+  .search-bar i { color: var(--text3); font-size: 17px; }
+  .search-bar input {
+    flex: 1; background: none; border: none; outline: none;
+    color: var(--text); font-size: 14px;
+  }
+  .ch-filters { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
+  .ch-filter-btn {
+    padding: 4px 12px; border-radius: 20px; font-size: 12px; cursor: pointer;
+    border: 1px solid var(--border); background: transparent; color: var(--text2);
+    transition: all .15s;
+  }
+  .ch-filter-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .ch-table { width: 100%; border-collapse: collapse; }
+  .ch-table th {
+    text-align: left; font-size: 11px; color: var(--text3); text-transform: uppercase;
+    letter-spacing: .8px; padding: 6px 10px;
+    border-bottom: 1px solid var(--border); font-weight: 500;
+  }
+  .ch-row {
+    display: grid; grid-template-columns: 44px 1fr 90px 80px 60px;
+    align-items: center; padding: 8px 10px; border-radius: var(--radius-sm);
+    cursor: pointer; transition: background .1s; gap: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+  .ch-row:hover { background: var(--surface); }
+  .ch-row.playing { background: rgba(59,130,246,.1); }
+  .ch-num { color: var(--text3); font-size: 12px; text-align: center; }
+  .ch-icon {
+    width: 32px; height: 32px; border-radius: 6px;
+    display: flex; align-items: center; justify-content: center; font-size: 13px;
+    font-weight: 700; flex-shrink: 0; color: #fff;
+  }
+  .ch-info { display: flex; align-items: center; gap: 10px; min-width: 0; }
+  .ch-name { font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ch-type { font-size: 11px; color: var(--text3); margin-top: 1px; }
+  .ch-enc {
+    font-size: 10px; padding: 2px 7px; border-radius: 4px;
+    background: rgba(239,68,68,.15); color: #f87171;
+  }
+  .ch-enc.fta { background: rgba(34,197,94,.12); color: #4ade80; }
+  .ch-fav { font-size: 16px; color: var(--text3); cursor: pointer; transition: color .15s; text-align: center; }
+  .ch-fav.starred { color: var(--amber); }
+  .ch-actions { display: flex; gap: 4px; }
+  .ch-actions button {
+    width: 26px; height: 26px; border-radius: 5px; border: 1px solid var(--border);
+    background: transparent; color: var(--text2); cursor: pointer; font-size: 13px;
+    display: flex; align-items: center; justify-content: center; transition: all .15s;
+  }
+  .ch-actions button:hover { background: var(--surface2); color: var(--text); }
+  .now-playing-bar {
+    position: sticky; bottom: 0; background: var(--surface);
+    border-top: 1px solid var(--border);
+    padding: 10px 16px; display: flex; align-items: center; gap: 12px;
+    backdrop-filter: blur(10px);
+  }
+  .np-thumb {
+    width: 38px; height: 38px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; font-weight: 700; color: #fff; flex-shrink: 0;
+  }
+  .np-info { flex: 1; min-width: 0; }
+  .np-name { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .np-prog { font-size: 11px; color: var(--text2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  /* ── REMOTE CONTROL ── */
+  .remote-wrap { max-width: 320px; margin: 0 auto; }
+  .remote-body {
+    background: var(--surface); border: 1px solid var(--border2);
+    border-radius: 24px; padding: 24px 20px; display: flex; flex-direction: column;
+    align-items: center; gap: 18px;
+  }
+  .remote-display {
+    width: 100%; background: var(--surface2); border-radius: var(--radius);
+    padding: 10px 14px; text-align: center;
+  }
+  .remote-display .ch-display { font-size: 28px; font-weight: 700; color: var(--accent); letter-spacing: 2px; }
+  .remote-display .prog-display { font-size: 11px; color: var(--text2); margin-top: 2px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+  .remote-row { display: flex; gap: 10px; align-items: center; justify-content: center; }
+  .rbt {
+    width: 52px; height: 52px; border-radius: 50%; border: 1px solid var(--border2);
+    background: var(--surface2); color: var(--text); cursor: pointer; font-size: 18px;
+    display: flex; align-items: center; justify-content: center;
+    transition: background .12s, transform .1s, box-shadow .12s;
+    user-select: none;
+  }
+  .rbt:hover { background: var(--surface3); box-shadow: 0 0 0 2px var(--accent)22; }
+  .rbt:active { transform: scale(.93); background: var(--surface3); }
+  .rbt.wide { border-radius: 12px; width: auto; padding: 0 16px; }
+  .rbt.sm { width: 40px; height: 40px; font-size: 15px; }
+  .rbt.red { background: #7f1d1d; border-color: #991b1b; color: #fca5a5; }
+  .rbt.green { background: #14532d; border-color: #166534; color: #86efac; }
+  .rbt.amber { background: #78350f; border-color: #92400e; color: #fcd34d; }
+  .rbt.blue { background: #1e3a5f; border-color: #1d4ed8; color: #93c5fd; }
+  .rbt.power { background: rgba(239,68,68,.18); border-color: var(--red); color: var(--red); }
+  .rbt.ok {
+    background: var(--accent); border-color: var(--accent); color: #fff;
+    font-size: 13px; font-weight: 700; width: 52px; height: 52px;
+  }
+  .nav-pad { position: relative; width: 150px; height: 150px; }
+  .nav-pad .rbt.arrow {
+    position: absolute; width: 44px; height: 44px;
+  }
+  .nav-pad .arr-up { top: 0; left: 50%; transform: translateX(-50%); }
+  .nav-pad .arr-down { bottom: 0; left: 50%; transform: translateX(-50%); }
+  .nav-pad .arr-left { left: 0; top: 50%; transform: translateY(-50%); }
+  .nav-pad .arr-right { right: 0; top: 50%; transform: translateY(-50%); }
+  .nav-pad .rbt.ok { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); }
+  .numpad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; width: 100%; }
+  .color-btns { display: flex; gap: 8px; }
+  /* ── EPG ── */
+  .epg-day-tabs { display: flex; gap: 6px; margin-bottom: 16px; overflow-x: auto; }
+  .epg-day-tabs::-webkit-scrollbar { display: none; }
+  .day-tab {
+    padding: 5px 14px; border-radius: 20px; font-size: 12px; cursor: pointer;
+    border: 1px solid var(--border); background: transparent; color: var(--text2);
+    white-space: nowrap; transition: all .15s; flex-shrink: 0;
+  }
+  .day-tab.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .epg-grid { display: flex; flex-direction: column; gap: 8px; }
+  .epg-item {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 12px 14px; cursor: pointer;
+    transition: border-color .15s;
+  }
+  .epg-item:hover { border-color: var(--accent); }
+  .epg-item.now { border-left: 3px solid var(--accent); }
+  .epg-item.past { opacity: .5; }
+  .epg-time { font-size: 11px; color: var(--accent); font-weight: 600; margin-bottom: 3px; }
+  .epg-title { font-size: 13px; font-weight: 500; }
+  .epg-desc { font-size: 11px; color: var(--text2); margin-top: 4px; line-height: 1.5; }
+  .epg-prog-bar {
+    height: 3px; background: var(--surface3); border-radius: 2px; margin-top: 8px; overflow: hidden;
+  }
+  .epg-prog-fill { height: 100%; background: var(--accent); border-radius: 2px; transition: width 1s; }
+  /* ── SETTINGS ── */
+  .settings-group {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius-lg); margin-bottom: 16px; overflow: hidden;
+  }
+  .settings-group-title {
+    padding: 10px 16px; font-size: 11px; text-transform: uppercase; letter-spacing: 1px;
+    color: var(--text3); border-bottom: 1px solid var(--border); background: var(--surface2);
+    font-weight: 500;
+  }
+  .settings-row {
+    display: flex; align-items: center; padding: 13px 16px;
+    border-bottom: 1px solid var(--border); cursor: pointer; transition: background .1s;
+  }
+  .settings-row:last-child { border-bottom: none; }
+  .settings-row:hover { background: var(--surface2); }
+  .settings-row i { font-size: 18px; color: var(--accent2); margin-right: 12px; flex-shrink: 0; }
+  .settings-label { flex: 1; font-size: 13px; }
+  .settings-value { font-size: 12px; color: var(--text3); }
+  .toggle {
+    width: 38px; height: 22px; border-radius: 11px; background: var(--surface3);
+    cursor: pointer; position: relative; transition: background .2s; flex-shrink: 0;
+  }
+  .toggle.on { background: var(--accent); }
+  .toggle::after {
+    content: ''; position: absolute; width: 16px; height: 16px; border-radius: 50%;
+    background: #fff; top: 3px; left: 3px; transition: left .2s;
+  }
+  .toggle.on::after { left: 19px; }
+  /* ── SIGNAL FINDER ── */
+  .signal-display {
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg);
+    padding: 20px; margin-bottom: 16px;
+  }
+  .signal-meter {
+    height: 22px; background: var(--surface2); border-radius: 4px;
+    overflow: hidden; margin: 10px 0 6px; position: relative;
+  }
+  .signal-fill {
+    height: 100%; border-radius: 4px; transition: width .4s;
+    background: linear-gradient(90deg, var(--green) 0%, var(--amber) 65%, var(--red) 100%);
+    background-size: 200% 100%;
+  }
+  .signal-labels { display: flex; justify-content: space-between; font-size: 11px; color: var(--text3); }
+  .sat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 16px; }
+  .sat-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 12px; cursor: pointer; transition: border-color .15s;
+  }
+  .sat-card:hover { border-color: var(--accent); }
+  .sat-card.selected { border-color: var(--accent); background: rgba(59,130,246,.08); }
+  .sat-card .sat-name { font-size: 12px; font-weight: 600; margin-bottom: 3px; }
+  .sat-card .sat-pos { font-size: 11px; color: var(--text2); }
+  /* ── TOAST ── */
+  #toast-wrap { position: fixed; bottom: 24px; right: 24px; display: flex; flex-direction: column; gap: 8px; z-index: 100; }
+  .toast {
+    background: var(--surface); border: 1px solid var(--border2);
+    border-radius: var(--radius); padding: 10px 16px; font-size: 13px;
+    display: flex; align-items: center; gap: 8px;
+    animation: toast-in .2s ease; box-shadow: 0 4px 20px rgba(0,0,0,.4);
+  }
+  .toast i { font-size: 17px; }
+  .toast.success i { color: var(--green); }
+  .toast.error i { color: var(--red); }
+  .toast.info i { color: var(--accent); }
+  @keyframes toast-in { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: none; } }
+  /* ── MODAL ── */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,.7);
+    display: none; align-items: center; justify-content: center; z-index: 200;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal-box {
+    background: var(--surface); border: 1px solid var(--border2);
+    border-radius: var(--radius-lg); padding: 24px; width: 100%; max-width: 380px;
+    box-shadow: 0 20px 60px rgba(0,0,0,.5);
+  }
+  .modal-title { font-size: 15px; font-weight: 600; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+  .modal-actions { display: flex; gap: 8px; margin-top: 16px; justify-content: flex-end; }
+  .btn-sec {
+    background: transparent; border: 1px solid var(--border2); border-radius: var(--radius-sm);
+    color: var(--text2); padding: 7px 14px; cursor: pointer; font-size: 13px;
+    transition: background .15s;
+  }
+  .btn-sec:hover { background: var(--surface2); }
+  .btn-danger {
+    background: rgba(239,68,68,.2); border: 1px solid var(--red);
+    border-radius: var(--radius-sm); color: #f87171; padding: 7px 14px;
+    cursor: pointer; font-size: 13px; transition: background .15s;
+  }
+  .progress-bar {
+    height: 4px; background: var(--surface2); border-radius: 2px;
+    overflow: hidden; margin: 8px 0;
+  }
+  .progress-fill {
+    height: 100%; background: var(--accent); border-radius: 2px;
+    transition: width .3s; width: 0%;
+  }
+  .tag { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 4px; font-size: 11px; }
+  .tag.sd { background: rgba(99,102,241,.15); color: #a5b4fc; }
+  .tag.hd { background: rgba(59,130,246,.15); color: #93c5fd; }
+  .tag.fhd { background: rgba(16,185,129,.15); color: #6ee7b7; }
+  .empty-state { text-align: center; padding: 60px 20px; color: var(--text3); }
+  .empty-state i { font-size: 48px; margin-bottom: 12px; }
+  .empty-state p { font-size: 14px; }
+</style>
+</head>
+<body>
+
+<div class="shell">
+  <!-- TOP BAR -->
+  <div class="topbar">
+    <div class="topbar-logo">
+      <i class="ti ti-satellite"></i>
+      G-MScreen Web
+    </div>
+    <div class="topbar-divider"></div>
+    <div class="stb-badge" id="stbBadge" onclick="showConnectModal()">
+      <div class="dot" id="connDot"></div>
+      <span id="connLabel">Not Connected</span>
+    </div>
+    <div class="topbar-right">
+      <div class="signal-bar" id="sigBar" title="Signal Strength">
+        <span style="height:5px"></span>
+        <span style="height:8px"></span>
+        <span style="height:11px"></span>
+        <span style="height:14px"></span>
+        <span style="height:17px"></span>
+      </div>
+      <button class="icon-btn" onclick="refreshAll()" title="Refresh"><i class="ti ti-refresh"></i></button>
+      <button class="icon-btn" onclick="navTo('settings')" title="Settings"><i class="ti ti-settings"></i></button>
+    </div>
+  </div>
+
+  <!-- SIDEBAR -->
+  <nav class="sidebar">
+    <div class="nav-section">Control</div>
+    <div class="nav-item active" onclick="navTo('channels')"><i class="ti ti-list"></i>Channels<span class="nav-badge" id="chCountBadge">0</span></div>
+    <div class="nav-item" onclick="navTo('remote')"><i class="ti ti-device-remote"></i>Remote</div>
+    <div class="nav-item" onclick="navTo('epg')"><i class="ti ti-calendar-event"></i>EPG Guide</div>
+    <div class="nav-section">Tools</div>
+    <div class="nav-item" onclick="navTo('signal')"><i class="ti ti-wave-sine"></i>Signal Finder</div>
+    <div class="nav-item" onclick="navTo('timers')"><i class="ti ti-clock"></i>Timers</div>
+    <div class="nav-section">System</div>
+    <div class="nav-item" onclick="navTo('settings')"><i class="ti ti-adjustments-horizontal"></i>STB Settings</div>
+  </nav>
+
+  <!-- MAIN -->
+  <main class="main" id="mainArea">
+
+    <!-- CHANNELS PANEL -->
+    <div class="panel active" id="panel-channels">
+      <div class="panel-header"><i class="ti ti-list"></i>Channel List</div>
+      <div class="search-bar">
+        <i class="ti ti-search"></i>
+        <input type="text" id="chSearch" placeholder="Search channels…" oninput="filterChannels()">
+      </div>
+      <div class="ch-filters">
+        <button class="ch-filter-btn active" onclick="setFilter('all',this)">All</button>
+        <button class="ch-filter-btn" onclick="setFilter('fav',this)">⭐ Favorites</button>
+        <button class="ch-filter-btn" onclick="setFilter('fta',this)">FTA</button>
+        <button class="ch-filter-btn" onclick="setFilter('hd',this)">HD</button>
+        <button class="ch-filter-btn" onclick="setFilter('locked',this)">🔒 Locked</button>
+      </div>
+      <div style="overflow-x:auto">
+        <div style="min-width:540px">
+          <div class="ch-row" style="cursor:default;border-bottom:2px solid var(--border2)">
+            <div style="font-size:11px;color:var(--text3);text-align:center">#</div>
+            <div style="font-size:11px;color:var(--text3)">Channel</div>
+            <div style="font-size:11px;color:var(--text3)">Encryption</div>
+            <div style="font-size:11px;color:var(--text3)">Quality</div>
+            <div></div>
+          </div>
+          <div id="chList"></div>
+        </div>
+      </div>
+      <div id="nowPlayingBar" class="now-playing-bar" style="display:none">
+        <div class="np-thumb" id="npThumb"></div>
+        <div class="np-info">
+          <div class="np-name" id="npName">—</div>
+          <div class="np-prog" id="npProg">—</div>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="icon-btn" onclick="remoteKey('MENU')"><i class="ti ti-menu-2"></i></button>
+          <button class="icon-btn" onclick="remoteKey('INFO')"><i class="ti ti-info-circle"></i></button>
+        </div>
+      </div>
+    </div>
+
+    <!-- REMOTE PANEL -->
+    <div class="panel" id="panel-remote">
+      <div class="panel-header"><i class="ti ti-device-remote"></i>Virtual Remote</div>
+      <div class="remote-wrap">
+        <div class="remote-body">
+          <div class="remote-display">
+            <div class="ch-display" id="remDispCh">---</div>
+            <div class="prog-display" id="remDispProg">No channel selected</div>
+          </div>
+          <!-- Power + Vol + Mute -->
+          <div class="remote-row">
+            <button class="rbt power" onclick="remoteKey('POWER')" title="Power"><i class="ti ti-power"></i></button>
+            <button class="rbt" onclick="remoteKey('MUTE')" title="Mute"><i class="ti ti-volume-off"></i></button>
+            <button class="rbt" onclick="remoteKey('SOURCE')" title="Source"><i class="ti ti-device-tv"></i></button>
+          </div>
+          <!-- Volume + Channel -->
+          <div class="remote-row" style="gap:20px">
+            <div style="display:flex;flex-direction:column;align-items:center;gap:6px">
+              <button class="rbt sm" onclick="remoteKey('VOL+')" title="Vol+"><i class="ti ti-volume"></i></button>
+              <span style="font-size:10px;color:var(--text3)">VOL</span>
+              <button class="rbt sm" onclick="remoteKey('VOL-')"><i class="ti ti-volume-2"></i></button>
+            </div>
+            <!-- Nav pad -->
+            <div class="nav-pad">
+              <button class="rbt arrow arr-up" onclick="remoteKey('UP')"><i class="ti ti-chevron-up"></i></button>
+              <button class="rbt arrow arr-down" onclick="remoteKey('DOWN')"><i class="ti ti-chevron-down"></i></button>
+              <button class="rbt arrow arr-left" onclick="remoteKey('LEFT')"><i class="ti ti-chevron-left"></i></button>
+              <button class="rbt arrow arr-right" onclick="remoteKey('RIGHT')"><i class="ti ti-chevron-right"></i></button>
+              <button class="rbt ok" onclick="remoteKey('OK')">OK</button>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:6px">
+              <button class="rbt sm" onclick="remoteKey('CH+')" title="Ch+"><i class="ti ti-chevrons-up"></i></button>
+              <span style="font-size:10px;color:var(--text3)">CH</span>
+              <button class="rbt sm" onclick="remoteKey('CH-')"><i class="ti ti-chevrons-down"></i></button>
+            </div>
+          </div>
+          <!-- Menu row -->
+          <div class="remote-row">
+            <button class="rbt sm" onclick="remoteKey('MENU')"><i class="ti ti-menu-2"></i></button>
+            <button class="rbt sm" onclick="remoteKey('BACK')"><i class="ti ti-arrow-back-up"></i></button>
+            <button class="rbt sm" onclick="remoteKey('EXIT')"><i class="ti ti-circle-x"></i></button>
+            <button class="rbt sm" onclick="remoteKey('INFO')"><i class="ti ti-info-circle"></i></button>
+          </div>
+          <!-- Number pad -->
+          <div class="numpad">
+            <button class="rbt" onclick="numKey('1')">1</button>
+            <button class="rbt" onclick="numKey('2')">2</button>
+            <button class="rbt" onclick="numKey('3')">3</button>
+            <button class="rbt" onclick="numKey('4')">4</button>
+            <button class="rbt" onclick="numKey('5')">5</button>
+            <button class="rbt" onclick="numKey('6')">6</button>
+            <button class="rbt" onclick="numKey('7')">7</button>
+            <button class="rbt" onclick="numKey('8')">8</button>
+            <button class="rbt" onclick="numKey('9')">9</button>
+            <button class="rbt wide" onclick="remoteKey('RECALL')" style="border-radius:12px;width:100%;font-size:11px">RECALL</button>
+            <button class="rbt" onclick="numKey('0')">0</button>
+            <button class="rbt" onclick="remoteKey('SLEEP')"><i class="ti ti-moon"></i></button>
+          </div>
+          <!-- Color buttons -->
+          <div class="color-btns">
+            <button class="rbt sm red" onclick="remoteKey('RED')">●</button>
+            <button class="rbt sm green" onclick="remoteKey('GREEN')">●</button>
+            <button class="rbt sm amber" onclick="remoteKey('YELLOW')">●</button>
+            <button class="rbt sm blue" onclick="remoteKey('BLUE')">●</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- EPG PANEL -->
+    <div class="panel" id="panel-epg">
+      <div class="panel-header"><i class="ti ti-calendar-event"></i>Electronic Program Guide</div>
+      <div class="epg-day-tabs" id="epgDayTabs"></div>
+      <div style="margin-bottom:14px">
+        <div class="search-bar">
+          <i class="ti ti-search"></i>
+          <input type="text" id="epgSearch" placeholder="Search programs…" oninput="filterEPG()">
+        </div>
+      </div>
+      <div class="epg-grid" id="epgGrid"></div>
+    </div>
+
+    <!-- SIGNAL PANEL -->
+    <div class="panel" id="panel-signal">
+      <div class="panel-header"><i class="ti ti-wave-sine"></i>Satellite Signal Finder</div>
+      <div class="sat-grid" id="satGrid"></div>
+      <div class="signal-display">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <span style="font-size:13px;font-weight:500">Signal Strength</span>
+          <span style="font-size:22px;font-weight:700;color:var(--green)" id="sigVal">0%</span>
+        </div>
+        <div class="signal-meter"><div class="signal-fill" id="sigFill" style="width:0%"></div></div>
+        <div class="signal-labels"><span>0</span><span>25</span><span>50</span><span>75</span><span>100</span></div>
+      </div>
+      <div class="signal-display">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <span style="font-size:13px;font-weight:500">Signal Quality</span>
+          <span style="font-size:22px;font-weight:700;color:var(--accent)" id="qualVal">0%</span>
+        </div>
+        <div class="signal-meter"><div class="signal-fill" id="qualFill" style="width:0%;background:var(--accent)"></div></div>
+        <div class="signal-labels"><span>0</span><span>25</span><span>50</span><span>75</span><span>100</span></div>
+      </div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px;font-size:12px;color:var(--text2);line-height:1.7">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px" id="sigDetails">
+          <div>Satellite: <b style="color:var(--text)" id="sigSat">—</b></div>
+          <div>LNB: <b style="color:var(--text)">Universal</b></div>
+          <div>Frequency: <b style="color:var(--text)" id="sigFreq">—</b></div>
+          <div>Polarization: <b style="color:var(--text)" id="sigPol">—</b></div>
+          <div>Symbol Rate: <b style="color:var(--text)" id="sigSR">—</b></div>
+          <div>BER: <b style="color:var(--text)" id="sigBER">—</b></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TIMERS PANEL -->
+    <div class="panel" id="panel-timers">
+      <div class="panel-header" style="justify-content:space-between">
+        <span style="display:flex;align-items:center;gap:10px"><i class="ti ti-clock"></i>Timers</span>
+        <button class="btn-primary" style="width:auto;padding:7px 16px;font-size:12px" onclick="openTimerModal()">+ Add Timer</button>
+      </div>
+      <div id="timerList">
+        <div class="empty-state"><i class="ti ti-clock-off"></i><p>No timers set</p></div>
+      </div>
+    </div>
+
+    <!-- SETTINGS PANEL -->
+    <div class="panel" id="panel-settings">
+      <div class="panel-header"><i class="ti ti-adjustments-horizontal"></i>STB Settings</div>
+      <div class="settings-group">
+        <div class="settings-group-title">Display</div>
+        <div class="settings-row" onclick="cycleRes()">
+          <i class="ti ti-device-tv"></i>
+          <div class="settings-label">Screen Resolution</div>
+          <div class="settings-value" id="setRes">1080p</div>
+        </div>
+        <div class="settings-row" onclick="cycleAspect()">
+          <i class="ti ti-aspect-ratio"></i>
+          <div class="settings-label">Aspect Ratio</div>
+          <div class="settings-value" id="setAspect">16:9</div>
+        </div>
+      </div>
+      <div class="settings-group">
+        <div class="settings-group-title">Parental & Lock</div>
+        <div class="settings-row">
+          <i class="ti ti-lock"></i>
+          <div class="settings-label">Parental Control</div>
+          <div class="toggle" id="toggleParental" onclick="toggleSetting('Parental',this)"></div>
+        </div>
+        <div class="settings-row" onclick="changePin()">
+          <i class="ti ti-password"></i>
+          <div class="settings-label">Change PIN</div>
+          <div class="settings-value">••••</div>
+        </div>
+        <div class="settings-row">
+          <i class="ti ti-device-mobile-off"></i>
+          <div class="settings-label">Screen Lock</div>
+          <div class="toggle" id="toggleScreen" onclick="toggleSetting('Screen Lock',this)"></div>
+        </div>
+      </div>
+      <div class="settings-group">
+        <div class="settings-group-title">Power</div>
+        <div class="settings-row" onclick="setSleepTimer()">
+          <i class="ti ti-moon"></i>
+          <div class="settings-label">Sleep Timer</div>
+          <div class="settings-value" id="setSleep">Off</div>
+        </div>
+        <div class="settings-row" onclick="powerOff()">
+          <i class="ti ti-power"></i>
+          <div class="settings-label">Power Off</div>
+          <div class="settings-value" style="color:var(--red)">Off</div>
+        </div>
+        <div class="settings-row" onclick="factoryReset()">
+          <i class="ti ti-restore"></i>
+          <div class="settings-label">Factory Reset</div>
+          <div class="settings-value" style="color:var(--red)">Danger</div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- CONNECT MODAL -->
+<div class="modal-overlay" id="connectModal">
+  <div class="modal-box">
+    <div class="connect-logo">
+      <i class="ti ti-satellite"></i>
+      <h1>Connect to Receiver</h1>
+      <p>Connect via WiFi on the same network</p>
+    </div>
+    <div class="field">
+      <label>Receiver IP Address</label>
+      <input type="text" id="stbIp" placeholder="192.168.1.100" value="192.168.1.100">
+    </div>
+    <div class="field">
+      <label>Port</label>
+      <input type="text" id="stbPort" placeholder="9000" value="9000">
+    </div>
+    <div class="field">
+      <label>Receiver Model</label>
+      <select id="stbModel">
+        <option value="qmax-mst-999">Qmax MST-999</option>
+        <option value="qmax-h8">Qmax MST-999 H8 Mini XR</option>
+        <option value="qmax-h9">Qmax MST-999 H9 Mini XR</option>
+        <option value="qmax-h10">Qmax MST-999 H10 Mini XR</option>
+        <option value="starsat">Starsat SR series</option>
+        <option value="mediastar">MediaStar Forever</option>
+        <option value="cryptobox">Cryptobox 600HD</option>
+        <option value="other">Other (G-MScreen compatible)</option>
+      </select>
+    </div>
+    <div id="connectProgress" style="display:none">
+      <div style="font-size:12px;color:var(--text2);margin-bottom:4px" id="connectStatus">Connecting…</div>
+      <div class="progress-bar"><div class="progress-fill" id="connectFill"></div></div>
+    </div>
+    <div style="margin-bottom:12px">
+      <div style="font-size:11px;color:var(--text3);margin-bottom:8px">Discovered on network:</div>
+      <div class="stb-list-grid" id="discoveredList"></div>
+    </div>
+    <button class="btn-primary" id="connectBtn" onclick="doConnect()">
+      <i class="ti ti-plug"></i> Connect
+    </button>
+    <div class="modal-actions">
+      <button class="btn-sec" onclick="closeConnectModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- TIMER MODAL -->
+<div class="modal-overlay" id="timerModal">
+  <div class="modal-box">
+    <div class="modal-title"><i class="ti ti-clock" style="color:var(--accent)"></i>Add Timer</div>
+    <div class="field">
+      <label>Channel</label>
+      <select id="timerCh">
+        <option value="">— Select channel —</option>
+      </select>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div class="field">
+        <label>Start Time</label>
+        <input type="datetime-local" id="timerStart">
+      </div>
+      <div class="field">
+        <label>End Time</label>
+        <input type="datetime-local" id="timerEnd">
+      </div>
+    </div>
+    <div class="field">
+      <label>Action</label>
+      <select id="timerAction">
+        <option value="record">Record</option>
+        <option value="watch">Switch Channel</option>
+        <option value="wakeup">Wake Up Receiver</option>
+      </select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-sec" onclick="document.getElementById('timerModal').classList.remove('open')">Cancel</button>
+      <button class="btn-primary" style="width:auto;padding:7px 20px" onclick="saveTimer()">Save Timer</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST WRAP -->
+<div id="toast-wrap"></div>
+
+<script>
+// ────────────────────────────────────────────────
+//  STATE
+// ────────────────────────────────────────────────
+const state = {
+  connected: false,
+  stbIp: '',
+  stbPort: 9000,
+  stbModel: 'Qmax MST-999',
+  currentCh: null,
+  filter: 'all',
+  favorites: new Set(),
+  locked: new Set([3,7,12]),
+  timers: [],
+  volume: 50,
+  numBuffer: '',
+  numTimer: null,
+  signalSim: null,
+  selectedSat: 0,
+};
+
+// ────────────────────────────────────────────────
+//  DEMO CHANNEL DATA (replaces real API when offline)
+// ────────────────────────────────────────────────
+const COLORS = ['#e74c3c','#3498db','#27ae60','#9b59b6','#f39c12','#1abc9c','#e67e22','#2ecc71','#c0392b','#16a085'];
+const CHANNELS = [
+  {id:1,num:'001',name:'Al Jazeera',enc:'FTA',quality:'HD',cat:'news',tp:'11900 V 27500',color:'#e74c3c'},
+  {id:2,num:'002',name:'MBC 1',enc:'FTA',quality:'HD',cat:'entertainment',tp:'11938 V 27500',color:'#3498db'},
+  {id:3,num:'003',name:'OSN Movies',enc:'ENC',quality:'FHD',cat:'movies',tp:'11862 H 27500',color:'#9b59b6'},
+  {id:4,num:'004',name:'beIN Sports 1',enc:'ENC',quality:'FHD',cat:'sports',tp:'11938 H 27500',color:'#e67e22'},
+  {id:5,num:'005',name:'Dubai TV',enc:'FTA',quality:'SD',cat:'entertainment',tp:'11900 V 27500',color:'#27ae60'},
+  {id:6,num:'006',name:'Al Arabia',enc:'FTA',quality:'HD',cat:'news',tp:'11977 V 27500',color:'#1abc9c'},
+  {id:7,num:'007',name:'Fox Movies',enc:'ENC',quality:'FHD',cat:'movies',tp:'11862 H 27500',color:'#e74c3c'},
+  {id:8,num:'008',name:'Rotana Cinema',enc:'FTA',quality:'HD',cat:'movies',tp:'11919 H 27500',color:'#c0392b'},
+  {id:9,num:'009',name:'Abu Dhabi Sports',enc:'ENC',quality:'HD',cat:'sports',tp:'11938 H 27500',color:'#2980b9'},
+  {id:10,num:'010',name:'Al Hayah 1',enc:'FTA',quality:'SD',cat:'entertainment',tp:'11919 V 27500',color:'#16a085'},
+  {id:11,num:'011',name:'ON E',enc:'FTA',quality:'HD',cat:'entertainment',tp:'11900 V 27500',color:'#8e44ad'},
+  {id:12,num:'012',name:'beIN Sports 2',enc:'ENC',quality:'FHD',cat:'sports',tp:'11938 H 27500',color:'#d35400'},
+  {id:13,num:'013',name:'MBC 2',enc:'FTA',quality:'HD',cat:'movies',tp:'11938 V 27500',color:'#2c3e50'},
+  {id:14,num:'014',name:'Nile TV',enc:'FTA',quality:'SD',cat:'news',tp:'11977 V 27500',color:'#27ae60'},
+  {id:15,num:'015',name:'Al Oula',enc:'FTA',quality:'SD',cat:'entertainment',tp:'11900 V 27500',color:'#e74c3c'},
+  {id:16,num:'016',name:'MBC Drama',enc:'FTA',quality:'HD',cat:'entertainment',tp:'11938 V 27500',color:'#9b59b6'},
+  {id:17,num:'017',name:'Rotana Khalijiyya',enc:'FTA',quality:'HD',cat:'music',tp:'11919 H 27500',color:'#f39c12'},
+  {id:18,num:'018',name:'Al Nahar',enc:'FTA',quality:'SD',cat:'entertainment',tp:'11977 V 27500',color:'#e67e22'},
+  {id:19,num:'019',name:'BBC Arabic',enc:'FTA',quality:'HD',cat:'news',tp:'11862 V 27500',color:'#c0392b'},
+  {id:20,num:'020',name:'Al Kahera w Al Nas',enc:'FTA',quality:'SD',cat:'entertainment',tp:'11900 V 27500',color:'#16a085'},
+];
+
+const EPG_DATA = [
+  {time:'08:00',title:'Morning News',desc:'Latest headlines and breaking news from around the world.',dur:60,prog:100},
+  {time:'09:00',title:'Documentary: Ocean Life',desc:'Exploring the depths of the ocean and marine ecosystems.',dur:90,prog:100},
+  {time:'10:30',title:'Cooking Show',desc:'Traditional recipes from around the Arab world.',dur:60,prog:65},
+  {time:'11:30',title:'Talk Show',desc:'Celebrity interviews and trending topics.',dur:60,prog:0},
+  {time:'12:30',title:'Midday News',desc:'Complete news coverage with regional and international stories.',dur:30,prog:0},
+  {time:'13:00',title:'Drama Series',desc:'A gripping story of family, love, and betrayal.',dur:60,prog:0},
+  {time:'14:00',title:'Sports Highlights',desc:'Review of yesterday\'s matches and upcoming fixtures.',dur:30,prog:0},
+  {time:'14:30',title:'Movie: The Journey',desc:'Award-winning drama about a family crossing borders.',dur:120,prog:0},
+  {time:'16:30',title:'Kids Zone',desc:'Educational and entertaining programs for children.',dur:60,prog:0},
+  {time:'17:30',title:'Evening News',desc:'Comprehensive evening news bulletin.',dur:30,prog:0},
+  {time:'18:00',title:'Political Analysis',desc:'In-depth analysis of current political events.',dur:60,prog:0},
+  {time:'19:00',title:'Prime Time Drama',desc:'The most-watched drama of the season continues.',dur:60,prog:0},
+  {time:'20:00',title:'Main News',desc:'Full news report with weather and sports.',dur:60,prog:0},
+  {time:'21:00',title:'Feature Film',desc:'International blockbuster with Arabic subtitles.',dur:120,prog:0},
+  {time:'23:00',title:'Late Night Show',desc:'Comedy and entertainment to end your day.',dur:60,prog:0},
+];
+
+const SATS = [
+  {name:'Nilesat 201',pos:'7°W',freq:'11900',pol:'V',sr:'27500'},
+  {name:'Arabsat 5C',pos:'20°E',freq:'11919',pol:'H',sr:'27500'},
+  {name:'Hotbird 13E',pos:'13°E',freq:'11862',pol:'H',sr:'27500'},
+  {name:'Astra 19.2E',pos:'19.2°E',freq:'12149',pol:'H',sr:'27500'},
+  {name:'Es\'hail 1',pos:'25.5°E',freq:'11938',pol:'V',sr:'27500'},
+  {name:'SES 5',pos:'5°E',freq:'11977',pol:'V',sr:'30000'},
+];
+
+// ────────────────────────────────────────────────
+//  NAVIGATION
+// ────────────────────────────────────────────────
+function navTo(panel) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('panel-' + panel).classList.add('active');
+  event && event.currentTarget && event.currentTarget.classList.add('active');
+  if (panel === 'epg') renderEPG();
+  if (panel === 'signal') renderSignal();
+  if (panel === 'timers') renderTimers();
+}
+
+// ────────────────────────────────────────────────
+//  CONNECT
+// ────────────────────────────────────────────────
+function showConnectModal() {
+  populateDiscovered();
+  document.getElementById('connectModal').classList.add('open');
+}
+function closeConnectModal() {
+  document.getElementById('connectModal').classList.remove('open');
+}
+function populateDiscovered() {
+  const list = document.getElementById('discoveredList');
+  const discovered = [
+    {name:'Qmax MST-999',ip:'192.168.1.100',model:'GX6605H'},
+    {name:'Qmax MST-999 H9',ip:'192.168.1.101',model:'GX6605H'},
+  ];
+  list.innerHTML = discovered.map(d => `
+    <div class="stb-card" onclick="selectSTB('${d.ip}','${d.name}')">
+      <i class="ti ti-device-tv-old"></i>
+      <div><div class="stb-name">${d.name}</div><div class="stb-ip">${d.ip} · ${d.model}</div></div>
+    </div>
+  `).join('');
+}
+function selectSTB(ip, name) {
+  document.getElementById('stbIp').value = ip;
+}
+async function doConnect() {
+  const ip = document.getElementById('stbIp').value.trim();
+  const port = document.getElementById('stbPort').value.trim();
+  const model = document.getElementById('stbModel').options[document.getElementById('stbModel').selectedIndex].text;
+  if (!ip) { showToast('Enter a valid IP address','error'); return; }
+
+  const btn = document.getElementById('connectBtn');
+  btn.disabled = true; btn.textContent = 'Connecting…';
+  document.getElementById('connectProgress').style.display = 'block';
+  
+  const steps = ['Scanning network…','Handshaking with STB…','Loading channel list…','Fetching EPG…'];
+  let prog = 0;
+  for (let i = 0; i < steps.length; i++) {
+    document.getElementById('connectStatus').textContent = steps[i];
+    prog = (i + 1) * 25;
+    document.getElementById('connectFill').style.width = prog + '%';
+    await delay(600);
+  }
+
+  // Simulate connect (in real use, fetch to STB API at http://ip:port/api/...)
+  state.connected = true; state.stbIp = ip; state.stbPort = port; state.stbModel = model;
+  document.getElementById('connDot').classList.add('online');
+  document.getElementById('connLabel').textContent = model;
+  
+  closeConnectModal();
+  btn.disabled = false; btn.textContent = 'Connect';
+  document.getElementById('connectProgress').style.display = 'none';
+  document.getElementById('connectFill').style.width = '0%';
+  
+  showToast(`Connected to ${model} (${ip})`,'success');
+  renderChannels();
+  startSignalSim();
+  populateTimerChSelect();
+}
+
+// ────────────────────────────────────────────────
+//  CHANNELS
+// ────────────────────────────────────────────────
+function renderChannels() {
+  const list = document.getElementById('chList');
+  const q = document.getElementById('chSearch').value.toLowerCase();
+  let chs = CHANNELS.filter(c => {
+    if (q && !c.name.toLowerCase().includes(q)) return false;
+    if (state.filter === 'fav') return state.favorites.has(c.id);
+    if (state.filter === 'fta') return c.enc === 'FTA';
+    if (state.filter === 'hd') return c.quality !== 'SD';
+    if (state.filter === 'locked') return state.locked.has(c.id);
+    return true;
+  });
+  document.getElementById('chCountBadge').textContent = CHANNELS.length;
+  if (chs.length === 0) {
+    list.innerHTML = `<div class="empty-state"><i class="ti ti-search-off"></i><p>No channels found</p></div>`;
+    return;
+  }
+  list.innerHTML = chs.map(c => {
+    const initials = c.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+    const isFav = state.favorites.has(c.id);
+    const isLocked = state.locked.has(c.id);
+    const isPlaying = state.currentCh && state.currentCh.id === c.id;
+    const qualClass = c.quality === 'FHD' ? 'fhd' : c.quality === 'HD' ? 'hd' : 'sd';
+    return `<div class="ch-row ${isPlaying?'playing':''}" onclick="switchChannel(${c.id})">
+      <div class="ch-num">${c.num}</div>
+      <div class="ch-info">
+        <div class="ch-icon" style="background:${c.color}">${initials}</div>
+        <div>
+          <div class="ch-name">${isLocked?'🔒 ':''} ${c.name}</div>
+          <div class="ch-type">${c.tp}</div>
+        </div>
+      </div>
+      <div><span class="ch-enc ${c.enc==='FTA'?'fta':''}">${c.enc}</span></div>
+      <div><span class="tag ${qualClass}">${c.quality}</span></div>
+      <div style="display:flex;align-items:center;gap:6px">
+        <span class="ch-fav ${isFav?'starred':''}" onclick="toggleFav(event,${c.id})" title="Favorite">★</span>
+        <button class="icon-btn" style="width:24px;height:24px;font-size:12px" onclick="editCh(event,${c.id})" title="Edit"><i class="ti ti-edit"></i></button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function setFilter(f, btn) {
+  state.filter = f;
+  document.querySelectorAll('.ch-filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderChannels();
+}
+function filterChannels() { renderChannels(); }
+
+function switchChannel(id) {
+  if (!state.connected) { showToast('Connect to a receiver first','error'); showConnectModal(); return; }
+  const ch = CHANNELS.find(c => c.id === id);
+  if (!ch) return;
+  if (state.locked.has(id)) {
+    const pin = prompt('Channel locked. Enter PIN:');
+    if (pin !== '1234') { showToast('Wrong PIN','error'); return; }
+  }
+  state.currentCh = ch;
+  renderChannels();
+  // Update now playing bar
+  const initials = ch.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+  document.getElementById('nowPlayingBar').style.display = 'flex';
+  const thumb = document.getElementById('npThumb');
+  thumb.style.background = ch.color; thumb.textContent = initials;
+  document.getElementById('npName').textContent = ch.name;
+  // Pick current EPG program
+  const now = EPG_DATA.find(e => e.prog < 100 && e.prog > 0) || EPG_DATA[0];
+  document.getElementById('npProg').textContent = now ? now.title : 'Live';
+  // Update remote display
+  document.getElementById('remDispCh').textContent = ch.num;
+  document.getElementById('remDispProg').textContent = ch.name;
+  showToast(`Switched to ${ch.name}`,'info');
+  sendSTBCommand('switch_channel', {id, name: ch.name});
+}
+
+function toggleFav(e, id) {
+  e.stopPropagation();
+  if (state.favorites.has(id)) state.favorites.delete(id);
+  else state.favorites.add(id);
+  renderChannels();
+  showToast(state.favorites.has(id) ? 'Added to favorites' : 'Removed from favorites','info');
+}
+
+function editCh(e, id) {
+  e.stopPropagation();
+  const ch = CHANNELS.find(c => c.id === id);
+  const name = prompt('Rename channel:', ch.name);
+  if (name && name.trim()) {
+    ch.name = name.trim();
+    renderChannels();
+    showToast('Channel renamed','success');
+    sendSTBCommand('rename_channel',{id,name:name.trim()});
+  }
+}
+
+// ────────────────────────────────────────────────
+//  REMOTE KEYS
+// ────────────────────────────────────────────────
+function remoteKey(key) {
+  if (!state.connected) { showToast('Connect to receiver first','error'); return; }
+  sendSTBCommand('key', {key});
+  if (key === 'CH+') { nextCh(1); }
+  if (key === 'CH-') { nextCh(-1); }
+  if (key === 'VOL+') { state.volume = Math.min(100, state.volume + 5); showToast(`Volume: ${state.volume}`,'info'); }
+  if (key === 'VOL-') { state.volume = Math.max(0, state.volume - 5); showToast(`Volume: ${state.volume}`,'info'); }
+  if (key === 'MUTE') { showToast('Muted','info'); }
+  if (key === 'POWER') { powerOff(); }
+  if (key === 'MENU') { showToast('Menu opened on TV','info'); }
+  if (key === 'INFO') { showToast('Info overlay on TV','info'); }
+}
+
+function numKey(k) {
+  clearTimeout(state.numTimer);
+  state.numBuffer += k;
+  document.getElementById('remDispCh').textContent = state.numBuffer.padStart(3,'0');
+  if (state.numBuffer.length >= 3) { goToChannel(); return; }
+  state.numTimer = setTimeout(goToChannel, 2000);
+}
+
+function goToChannel() {
+  const num = parseInt(state.numBuffer, 10);
+  state.numBuffer = '';
+  const ch = CHANNELS.find(c => parseInt(c.num, 10) === num);
+  if (ch) switchChannel(ch.id);
+  else showToast(`Channel ${num} not found`,'error');
+}
+
+function nextCh(dir) {
+  const idx = state.currentCh ? CHANNELS.findIndex(c => c.id === state.currentCh.id) : -1;
+  const next = CHANNELS[(idx + dir + CHANNELS.length) % CHANNELS.length];
+  if (next) switchChannel(next.id);
+}
+
+// ────────────────────────────────────────────────
+//  EPG
+// ────────────────────────────────────────────────
+function renderEPG() {
+  const tabs = document.getElementById('epgDayTabs');
+  const days = ['Today','Tomorrow','Sat','Sun','Mon','Tue','Wed'];
+  tabs.innerHTML = days.map((d,i) =>
+    `<button class="day-tab ${i===0?'active':''}" onclick="switchEpgDay(${i},this)">${d}</button>`
+  ).join('');
+  renderEPGList();
+}
+function switchEpgDay(day, btn) {
+  document.querySelectorAll('.day-tab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderEPGList(day);
+}
+function renderEPGList(day=0) {
+  const q = document.getElementById('epgSearch').value.toLowerCase();
+  const grid = document.getElementById('epgGrid');
+  let items = day === 0 ? EPG_DATA : EPG_DATA.map(e => ({...e, prog: 0}));
+  if (q) items = items.filter(e => e.title.toLowerCase().includes(q) || e.desc.toLowerCase().includes(q));
+  grid.innerHTML = items.map(e => {
+    const isNow = e.prog > 0 && e.prog < 100;
+    const isPast = e.prog >= 100;
+    return `<div class="epg-item ${isNow?'now':''} ${isPast?'past':''}">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div class="epg-time">${e.time} ${isNow?'<span style="background:var(--accent);color:#fff;padding:1px 6px;border-radius:4px;font-size:10px;margin-left:4px">LIVE</span>':''}</div>
+        <span style="font-size:11px;color:var(--text3)">${e.dur} min</span>
+      </div>
+      <div class="epg-title">${e.title}</div>
+      <div class="epg-desc">${e.desc}</div>
+      ${isNow ? `<div class="epg-prog-bar"><div class="epg-prog-fill" style="width:${e.prog}%"></div></div>` : ''}
+    </div>`;
+  }).join('') || `<div class="empty-state"><i class="ti ti-calendar-off"></i><p>No programs found</p></div>`;
+}
+function filterEPG() { renderEPGList(); }
+
+// ────────────────────────────────────────────────
+//  SIGNAL FINDER
+// ────────────────────────────────────────────────
+function renderSignal() {
+  const grid = document.getElementById('satGrid');
+  grid.innerHTML = SATS.map((s, i) => `
+    <div class="sat-card ${state.selectedSat===i?'selected':''}" onclick="selectSat(${i})">
+      <div class="sat-name">${s.name}</div>
+      <div class="sat-pos">${s.pos}</div>
+    </div>
+  `).join('');
+  updateSigDetails();
+}
+function selectSat(i) {
+  state.selectedSat = i;
+  renderSignal();
+  updateSigDetails();
+}
+function updateSigDetails() {
+  const s = SATS[state.selectedSat];
+  document.getElementById('sigSat').textContent = s.name;
+  document.getElementById('sigFreq').textContent = s.freq + ' MHz';
+  document.getElementById('sigPol').textContent = s.pol;
+  document.getElementById('sigSR').textContent = s.sr + ' kS/s';
+}
+function startSignalSim() {
+  if (state.signalSim) clearInterval(state.signalSim);
+  state.signalSim = setInterval(() => {
+    const str = 60 + Math.round(Math.sin(Date.now()/3000) * 15 + Math.random() * 6);
+    const qual = 55 + Math.round(Math.sin(Date.now()/4000 + 1) * 12 + Math.random() * 5);
+    const ber = (Math.random() * 0.0001).toFixed(7);
+    document.getElementById('sigVal').textContent = str + '%';
+    document.getElementById('qualVal').textContent = qual + '%';
+    document.getElementById('sigFill').style.width = str + '%';
+    document.getElementById('qualFill').style.width = qual + '%';
+    document.getElementById('sigBER').textContent = ber;
+    // Signal bar in topbar
+    const bars = document.querySelectorAll('.signal-bar span');
+    const active = Math.round(str / 20);
+    bars.forEach((b, i) => b.classList.toggle('active', i < active));
+    bars[0].style.height = '5px'; bars[1].style.height = '8px';
+    bars[2].style.height = '11px'; bars[3].style.height = '14px'; bars[4].style.height = '17px';
+  }, 1000);
+}
+
+// ────────────────────────────────────────────────
+//  TIMERS
+// ────────────────────────────────────────────────
+function openTimerModal() {
+  const now = new Date();
+  const pad = v => String(v).padStart(2,'0');
+  const dt = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}T${pad(now.getHours())}:00`;
+  document.getElementById('timerStart').value = dt;
+  const end = new Date(now.getTime() + 3600000);
+  document.getElementById('timerEnd').value = `${end.getFullYear()}-${pad(end.getMonth()+1)}-${pad(end.getDate())}T${pad(end.getHours())}:00`;
+  document.getElementById('timerModal').classList.add('open');
+}
+function populateTimerChSelect() {
+  const sel = document.getElementById('timerCh');
+  sel.innerHTML = `<option value="">— Select channel —</option>` +
+    CHANNELS.map(c => `<option value="${c.id}">${c.num} — ${c.name}</option>`).join('');
+}
+function saveTimer() {
+  const chId = document.getElementById('timerCh').value;
+  const start = document.getElementById('timerStart').value;
+  const end = document.getElementById('timerEnd').value;
+  const action = document.getElementById('timerAction').value;
+  if (!chId || !start || !end) { showToast('Fill all timer fields','error'); return; }
+  const ch = CHANNELS.find(c => c.id == chId);
+  state.timers.push({ ch: ch.name, start, end, action, id: Date.now() });
+  document.getElementById('timerModal').classList.remove('open');
+  renderTimers();
+  showToast('Timer saved','success');
+  sendSTBCommand('add_timer',{chId,start,end,action});
+}
+function renderTimers() {
+  const list = document.getElementById('timerList');
+  if (state.timers.length === 0) {
+    list.innerHTML = `<div class="empty-state"><i class="ti ti-clock-off"></i><p>No timers set</p></div>`;
+    return;
+  }
+  list.innerHTML = state.timers.map(t => `
+    <div class="settings-row" style="border:1px solid var(--border);border-radius:var(--radius);margin-bottom:8px">
+      <i class="ti ti-clock" style="color:var(--accent2);font-size:18px;margin-right:12px"></i>
+      <div style="flex:1">
+        <div style="font-size:13px;font-weight:500">${t.ch}</div>
+        <div style="font-size:11px;color:var(--text2)">${t.start.replace('T',' ')} → ${t.end.split('T')[1]}</div>
+        <div style="font-size:11px;color:var(--text3)">${t.action}</div>
+      </div>
+      <button class="icon-btn" onclick="deleteTimer(${t.id})" style="color:var(--red)"><i class="ti ti-trash"></i></button>
+    </div>
+  `).join('');
+}
+function deleteTimer(id) {
+  state.timers = state.timers.filter(t => t.id !== id);
+  renderTimers();
+  showToast('Timer deleted','info');
+}
+
+// ────────────────────────────────────────────────
+//  SETTINGS
+// ────────────────────────────────────────────────
+const resList = ['576i','720p','1080i','1080p','4K'];
+let resIdx = 3;
+function cycleRes() {
+  resIdx = (resIdx + 1) % resList.length;
+  document.getElementById('setRes').textContent = resList[resIdx];
+  sendSTBCommand('set_resolution',{res:resList[resIdx]});
+  showToast('Resolution: ' + resList[resIdx],'info');
+}
+const aspectList = ['4:3','16:9','Auto'];
+let aspectIdx = 1;
+function cycleAspect() {
+  aspectIdx = (aspectIdx + 1) % aspectList.length;
+  document.getElementById('setAspect').textContent = aspectList[aspectIdx];
+  sendSTBCommand('set_aspect',{aspect:aspectList[aspectIdx]});
+  showToast('Aspect: ' + aspectList[aspectIdx],'info');
+}
+const sleepOpts = ['Off','15 min','30 min','1 hour','2 hours'];
+let sleepIdx = 0;
+function setSleepTimer() {
+  sleepIdx = (sleepIdx + 1) % sleepOpts.length;
+  document.getElementById('setSleep').textContent = sleepOpts[sleepIdx];
+  sendSTBCommand('set_sleep',{timer:sleepOpts[sleepIdx]});
+  showToast('Sleep timer: ' + sleepOpts[sleepIdx],'info');
+}
+function toggleSetting(name, el) {
+  el.classList.toggle('on');
+  const on = el.classList.contains('on');
+  sendSTBCommand('toggle',{name,value:on});
+  showToast(`${name}: ${on?'On':'Off'}`,'info');
+}
+function changePin() {
+  const p = prompt('Enter new 4-digit PIN:');
+  if (p && /^\d{4}$/.test(p)) {
+    sendSTBCommand('set_pin',{pin:p});
+    showToast('PIN changed','success');
+  } else if (p) showToast('PIN must be 4 digits','error');
+}
+function powerOff() {
+  if (!state.connected) { showToast('Not connected','error'); return; }
+  if (confirm('Power off the receiver?')) {
+    sendSTBCommand('power_off',{});
+    state.connected = false;
+    document.getElementById('connDot').classList.remove('online');
+    document.getElementById('connLabel').textContent = 'Not Connected';
+    showToast('Receiver powered off','info');
+  }
+}
+function factoryReset() {
+  if (!state.connected) { showToast('Not connected','error'); return; }
+  if (confirm('⚠️ Factory reset will erase ALL settings and channels.\nAre you sure?')) {
+    sendSTBCommand('factory_reset',{});
+    showToast('Factory reset sent to receiver','info');
+  }
+}
+
+// ────────────────────────────────────────────────
+//  STB COMMUNICATION
+// ────────────────────────────────────────────────
+async function sendSTBCommand(cmd, params) {
+  if (!state.connected) return;
+  // Real API call (G-MScreen protocol over HTTP to STB IP:port)
+  // Packets are JSON/XML, some responses zlib-compressed
+  // Example endpoint: http://ip:port/api/remote?cmd=KEY&key=UP
+  const url = `http://${state.stbIp}:${state.stbPort}/api/${cmd}`;
+  try {
+    const r = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(params),
+      signal: AbortSignal.timeout(3000),
+    });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    return await r.json();
+  } catch (e) {
+    // Demo mode — silently ignore network errors
+    // In production, show error toast
+  }
+}
+
+async function refreshAll() {
+  if (!state.connected) { showToast('Connect to a receiver first','error'); showConnectModal(); return; }
+  showToast('Refreshing channel list…','info');
+  await delay(800);
+  renderChannels();
+  showToast('Channel list updated','success');
+}
+
+// ────────────────────────────────────────────────
+//  UTILS
+// ────────────────────────────────────────────────
+function showToast(msg, type='info') {
+  const wrap = document.getElementById('toast-wrap');
+  const icons = { success:'ti-check-circle', error:'ti-alert-circle', info:'ti-info-circle' };
+  const div = document.createElement('div');
+  div.className = `toast ${type}`;
+  div.innerHTML = `<i class="ti ${icons[type]}"></i><span>${msg}</span>`;
+  wrap.appendChild(div);
+  setTimeout(() => { div.style.opacity='0'; div.style.transform='translateX(20px)'; div.style.transition='.2s'; setTimeout(()=>div.remove(),200); }, 3000);
+}
+function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// ────────────────────────────────────────────────
+//  INIT
+// ────────────────────────────────────────────────
+renderChannels();
+populateDiscovered();
+populateTimerChSelect();
+setTimeout(() => showConnectModal(), 400);
+</script>
+</body>
+</html>
