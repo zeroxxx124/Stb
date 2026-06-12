@@ -1,0 +1,1435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>G-MScreen</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+:root{
+  --bg:#f2f2f7;
+  --card:#ffffff;
+  --card2:#f9f9fb;
+  --sep:rgba(60,60,67,0.18);
+  --sep2:rgba(60,60,67,0.09);
+  --label:#000000;
+  --label2:rgba(60,60,67,0.6);
+  --label3:rgba(60,60,67,0.36);
+  --blue:#007aff;
+  --green:#34c759;
+  --red:#ff3b30;
+  --orange:#ff9500;
+  --gray:#8e8e93;
+  --gray2:#aeaeb2;
+  --gray3:#d1d1d6;
+  --fill:#e5e5ea;
+  --inset:env(safe-area-inset-bottom, 0px);
+}
+@media(prefers-color-scheme:dark){
+  :root{
+    --bg:#000000;
+    --card:#1c1c1e;
+    --card2:#2c2c2e;
+    --sep:rgba(84,84,88,0.65);
+    --sep2:rgba(84,84,88,0.36);
+    --label:#ffffff;
+    --label2:rgba(235,235,245,0.6);
+    --label3:rgba(235,235,245,0.3);
+    --fill:#3a3a3c;
+    --gray3:#48484a;
+  }
+}
+
+html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text',sans-serif;}
+body{background:var(--bg);color:var(--label);font-size:17px;line-height:1.3;}
+
+/* ── NAV BAR ── */
+.navbar{
+  position:fixed;top:0;left:0;right:0;z-index:100;
+  height:calc(44px + env(safe-area-inset-top,0px));
+  padding-top:env(safe-area-inset-top,0px);
+  background:rgba(249,249,249,0.92);
+  backdrop-filter:saturate(180%) blur(20px);
+  -webkit-backdrop-filter:saturate(180%) blur(20px);
+  border-bottom:0.5px solid var(--sep);
+  display:flex;align-items:center;justify-content:space-between;
+  padding-left:16px;padding-right:16px;
+}
+@media(prefers-color-scheme:dark){
+  .navbar{background:rgba(28,28,30,0.92);}
+}
+.navbar-title{font-size:17px;font-weight:600;letter-spacing:-0.4px;}
+.navbar-btn{font-size:17px;color:var(--blue);background:none;border:none;padding:8px 4px;cursor:pointer;min-width:44px;text-align:left;}
+.navbar-btn.right{text-align:right;}
+
+/* ── TAB BAR ── */
+.tabbar{
+  position:fixed;bottom:0;left:0;right:0;z-index:100;
+  height:calc(49px + var(--inset));
+  padding-bottom:var(--inset);
+  background:rgba(249,249,249,0.92);
+  backdrop-filter:saturate(180%) blur(20px);
+  -webkit-backdrop-filter:saturate(180%) blur(20px);
+  border-top:0.5px solid var(--sep);
+  display:flex;align-items:flex-start;justify-content:space-around;
+  padding-top:4px;
+}
+@media(prefers-color-scheme:dark){
+  .tabbar{background:rgba(28,28,30,0.92);}
+}
+.tab-item{
+  flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;
+  cursor:pointer;border:none;background:none;color:var(--gray);padding:0 2px;
+  min-width:44px;min-height:44px;justify-content:flex-start;
+}
+.tab-item.active{color:var(--blue);}
+.tab-icon{font-size:24px;line-height:1;}
+.tab-label{font-size:10px;font-weight:500;letter-spacing:-0.2px;}
+/* SVG icons */
+.tab-icon svg{width:24px;height:24px;}
+
+/* ── SCROLL AREA ── */
+.screen{
+  position:fixed;inset:0;
+  overflow:hidden;
+}
+.page{
+  position:absolute;inset:0;
+  overflow-y:auto;-webkit-overflow-scrolling:touch;
+  padding-top:calc(44px + env(safe-area-inset-top,0px));
+  padding-bottom:calc(49px + var(--inset));
+  display:none;
+}
+.page.active{display:block;}
+
+/* ── LIST GROUPS (iOS style) ── */
+.group{margin:20px 16px 0;}
+.group-label{font-size:13px;color:var(--label2);text-transform:uppercase;letter-spacing:0.4px;padding:0 16px 6px;}
+.group-card{background:var(--card);border-radius:12px;overflow:hidden;}
+.row{
+  display:flex;align-items:center;
+  min-height:44px;padding:10px 16px;
+  gap:12px;
+  border-bottom:0.5px solid var(--sep2);
+  cursor:pointer;
+  -webkit-user-select:none;user-select:none;
+}
+.row:last-child{border-bottom:none;}
+.row:active{background:var(--fill);}
+.row-icon{width:29px;height:29px;border-radius:7px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.row-icon svg{width:17px;height:17px;fill:#fff;}
+.row-body{flex:1;min-width:0;}
+.row-title{font-size:17px;color:var(--label);}
+.row-sub{font-size:13px;color:var(--label2);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.row-right{font-size:17px;color:var(--label2);display:flex;align-items:center;gap:4px;flex-shrink:0;}
+.chevron{width:8px;height:13px;opacity:0.45;}
+.chevron path{fill:var(--label);}
+
+/* ── TOGGLE ── */
+.toggle-track{
+  width:51px;height:31px;border-radius:16px;
+  background:var(--gray3);cursor:pointer;position:relative;
+  transition:background .25s;flex-shrink:0;
+}
+.toggle-track.on{background:var(--green);}
+.toggle-thumb{
+  position:absolute;width:27px;height:27px;border-radius:50%;
+  background:#fff;top:2px;left:2px;
+  box-shadow:0 2px 5px rgba(0,0,0,0.25);
+  transition:left .25s cubic-bezier(.34,1.56,.64,1);
+}
+.toggle-track.on .toggle-thumb{left:22px;}
+
+/* ── BADGE ── */
+.badge{
+  background:var(--red);color:#fff;font-size:12px;font-weight:600;
+  border-radius:10px;padding:2px 7px;line-height:1.4;
+  min-width:20px;text-align:center;
+}
+.badge.blue{background:var(--blue);}
+.badge.green{background:var(--green);}
+.badge.gray{background:var(--gray);}
+
+/* ── CONNECT SHEET ── */
+.sheet-overlay{
+  position:fixed;inset:0;z-index:200;
+  background:rgba(0,0,0,0.4);
+  opacity:0;pointer-events:none;
+  transition:opacity .3s;
+}
+.sheet-overlay.open{opacity:1;pointer-events:all;}
+.sheet{
+  position:fixed;bottom:0;left:0;right:0;z-index:201;
+  background:var(--bg);
+  border-radius:12px 12px 0 0;
+  padding-bottom:var(--inset);
+  transform:translateY(100%);
+  transition:transform .35s cubic-bezier(.32,1.03,.55,.98);
+  max-height:90vh;overflow-y:auto;
+}
+.sheet.open{transform:translateY(0);}
+.sheet-handle{width:36px;height:5px;border-radius:3px;background:var(--gray3);margin:8px auto 16px;}
+.sheet-title{font-size:17px;font-weight:600;text-align:center;margin-bottom:4px;}
+.sheet-sub{font-size:14px;color:var(--label2);text-align:center;margin-bottom:20px;padding:0 20px;}
+
+/* ── TEXT FIELD ── */
+.tf-group{margin:0 16px 12px;}
+.tf-label{font-size:13px;color:var(--label2);text-transform:uppercase;letter-spacing:0.4px;padding:0 4px 6px;}
+.tf-card{background:var(--card);border-radius:10px;overflow:hidden;}
+.tf{
+  width:100%;border:none;background:none;outline:none;
+  padding:11px 14px;font-size:17px;color:var(--label);
+  border-bottom:0.5px solid var(--sep2);
+}
+.tf:last-child{border-bottom:none;}
+.tf::placeholder{color:var(--label3);}
+
+/* ── BIG BUTTON ── */
+.bigbtn{
+  display:block;width:calc(100% - 32px);margin:8px 16px;
+  background:var(--blue);color:#fff;border:none;border-radius:12px;
+  font-size:17px;font-weight:600;padding:14px;cursor:pointer;
+  transition:opacity .15s;text-align:center;
+}
+.bigbtn:active{opacity:.8;}
+.bigbtn.danger{background:var(--red);}
+.bigbtn.gray{background:var(--fill);color:var(--label);}
+
+/* ── STATUS INDICATOR ── */
+.status-dot{width:10px;height:10px;border-radius:50%;background:var(--gray3);flex-shrink:0;}
+.status-dot.online{background:var(--green);}
+.status-dot.connecting{background:var(--orange);animation:pulse 1s infinite;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+/* ── CHANNEL LIST ── */
+.ch-search{
+  margin:12px 16px 4px;
+  background:var(--card);border-radius:10px;
+  display:flex;align-items:center;padding:8px 12px;gap:8px;
+}
+.ch-search svg{flex-shrink:0;opacity:.45;}
+.ch-search input{
+  flex:1;border:none;background:none;outline:none;
+  font-size:17px;color:var(--label);
+}
+.ch-search input::placeholder{color:var(--label3);}
+.seg-ctrl{
+  display:flex;margin:8px 16px;background:var(--fill);border-radius:9px;padding:2px;gap:2px;
+}
+.seg-btn{
+  flex:1;border:none;background:none;border-radius:7px;
+  font-size:13px;font-weight:500;padding:5px 4px;cursor:pointer;
+  color:var(--label2);transition:all .2s;
+}
+.seg-btn.active{background:var(--card);color:var(--label);box-shadow:0 1px 3px rgba(0,0,0,0.12);}
+.ch-row{
+  display:flex;align-items:center;padding:10px 16px;gap:12px;
+  border-bottom:0.5px solid var(--sep2);cursor:pointer;
+  background:var(--card);
+  -webkit-user-select:none;user-select:none;
+}
+.ch-row:active{background:var(--fill);}
+.ch-row:last-child{border-bottom:none;}
+.ch-num{width:28px;text-align:right;font-size:14px;color:var(--label3);flex-shrink:0;font-variant-numeric:tabular-nums;}
+.ch-avatar{
+  width:36px;height:36px;border-radius:8px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  font-size:13px;font-weight:700;color:#fff;
+}
+.ch-info{flex:1;min-width:0;}
+.ch-name{font-size:16px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.ch-meta{font-size:12px;color:var(--label2);margin-top:1px;}
+.ch-badge{
+  font-size:11px;font-weight:600;padding:2px 6px;border-radius:5px;
+  background:rgba(52,199,89,0.15);color:var(--green);flex-shrink:0;
+}
+.ch-badge.enc{background:rgba(255,149,0,0.15);color:var(--orange);}
+.ch-badge.hd{background:rgba(0,122,255,0.15);color:var(--blue);}
+.ch-playing{
+  width:18px;height:18px;flex-shrink:0;
+  display:none;align-items:center;justify-content:center;
+}
+.ch-playing.on{display:flex;}
+.ch-playing svg{width:14px;height:14px;}
+
+/* ── REMOTE ── */
+.remote-screen{
+  background:var(--card);border-radius:12px;
+  margin:16px;padding:14px 16px;
+  display:flex;align-items:center;gap:12px;
+}
+.remote-screen-ch{font-size:32px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--blue);min-width:60px;}
+.remote-screen-info{flex:1;min-width:0;}
+.remote-screen-name{font-size:15px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.remote-screen-prog{font-size:12px;color:var(--label2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px;}
+.rpad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:0 16px 12px;}
+.rb{
+  background:var(--card);border-radius:12px;border:none;
+  color:var(--label);font-size:15px;font-weight:500;
+  height:52px;cursor:pointer;display:flex;align-items:center;
+  justify-content:center;gap:6px;
+  -webkit-user-select:none;user-select:none;
+  transition:background .1s;
+}
+.rb:active{background:var(--fill);}
+.rb svg{width:20px;height:20px;}
+.rb.blue{background:var(--blue);color:#fff;}
+.rb.blue:active{background:#006cdf;}
+.rb.red{background:rgba(255,59,48,0.12);color:var(--red);}
+.rb.wide{grid-column:span 2;}
+.rb.sm{height:44px;border-radius:10px;}
+.numpad{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:0 16px 12px;}
+.numkey{
+  background:var(--card);border-radius:12px;border:none;
+  color:var(--label);height:56px;cursor:pointer;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  -webkit-user-select:none;user-select:none;
+  transition:background .1s;
+}
+.numkey:active{background:var(--fill);}
+.numkey .digit{font-size:22px;font-weight:400;}
+.numkey .letters{font-size:9px;letter-spacing:1.5px;color:var(--label2);height:11px;}
+.colorbts{display:flex;gap:8px;margin:0 16px 12px;}
+.colorbtn{
+  flex:1;height:40px;border-radius:10px;border:none;cursor:pointer;
+  -webkit-user-select:none;user-select:none;opacity:0.85;
+}
+.colorbtn:active{opacity:1;}
+
+/* ── EPG ── */
+.epg-ch-bar{
+  display:flex;gap:8px;padding:8px 16px;overflow-x:auto;
+  scrollbar-width:none;
+}
+.epg-ch-bar::-webkit-scrollbar{display:none;}
+.epg-ch-pill{
+  flex-shrink:0;padding:6px 14px;border-radius:20px;
+  border:none;font-size:14px;cursor:pointer;
+  background:var(--card);color:var(--label2);
+}
+.epg-ch-pill.active{background:var(--blue);color:#fff;}
+.epg-now-card{
+  background:var(--card);margin:4px 16px;border-radius:12px;
+  padding:14px;border-left:3px solid var(--blue);
+}
+.epg-prog{
+  background:var(--card);margin:0 16px 1px;padding:12px 14px;
+  border-bottom:0.5px solid var(--sep2);
+}
+.epg-prog:first-child{border-radius:12px 12px 0 0;}
+.epg-prog:last-child{border-radius:0 0 12px 12px;border-bottom:none;}
+.epg-time{font-size:13px;color:var(--blue);font-weight:600;margin-bottom:3px;}
+.epg-title-text{font-size:15px;font-weight:500;}
+.epg-desc-text{font-size:13px;color:var(--label2);margin-top:3px;line-height:1.4;}
+.epg-bar{height:3px;background:var(--fill);border-radius:2px;margin-top:8px;overflow:hidden;}
+.epg-bar-fill{height:100%;background:var(--blue);border-radius:2px;}
+
+/* ── SIGNAL ── */
+.sig-card{background:var(--card);border-radius:12px;margin:8px 16px;padding:16px;}
+.sig-label{font-size:13px;color:var(--label2);margin-bottom:6px;}
+.sig-val{font-size:36px;font-weight:700;font-variant-numeric:tabular-nums;margin-bottom:8px;}
+.sig-bar{height:8px;background:var(--fill);border-radius:4px;overflow:hidden;}
+.sig-fill{height:100%;border-radius:4px;transition:width .5s;background:var(--green);}
+.sig-fill.mid{background:var(--orange);}
+.sig-fill.low{background:var(--red);}
+.sat-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin:8px 16px;}
+.sat-pill{
+  background:var(--card);border-radius:12px;padding:12px 14px;
+  border:2px solid transparent;cursor:pointer;
+}
+.sat-pill.sel{border-color:var(--blue);}
+.sat-pill-name{font-size:15px;font-weight:500;}
+.sat-pill-pos{font-size:13px;color:var(--label2);margin-top:2px;}
+.sig-meta{display:grid;grid-template-columns:1fr 1fr;gap:8px 16px;margin:8px 16px;}
+.sig-meta-item{background:var(--card);border-radius:10px;padding:10px 12px;}
+.sig-meta-k{font-size:12px;color:var(--label2);}
+.sig-meta-v{font-size:15px;font-weight:500;margin-top:2px;}
+
+/* ── TOAST ── */
+#toasts{
+  position:fixed;top:calc(env(safe-area-inset-top,0px) + 52px);
+  left:0;right:0;z-index:300;
+  display:flex;flex-direction:column;align-items:center;gap:8px;pointer-events:none;
+}
+.toast{
+  background:rgba(50,50,50,0.92);color:#fff;
+  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  border-radius:20px;padding:10px 18px;font-size:15px;font-weight:500;
+  max-width:300px;text-align:center;
+  animation:toast-in .25s ease;
+}
+@keyframes toast-in{from{opacity:0;transform:scale(0.85)}to{opacity:1;transform:scale(1)}}
+
+/* ── LOADING SPINNER ── */
+.spinner{
+  width:20px;height:20px;border-radius:50%;
+  border:2.5px solid var(--fill);border-top-color:var(--blue);
+  animation:spin .7s linear infinite;flex-shrink:0;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+
+<!-- NAV BAR -->
+<div class="navbar" id="navbar">
+  <button class="navbar-btn" id="navLeft" onclick="navLeftTap()"></button>
+  <div class="navbar-title" id="navTitle">G-MScreen</div>
+  <button class="navbar-btn right" id="navRight" onclick="navRightTap()"></button>
+</div>
+
+<!-- PAGES -->
+<div class="screen">
+
+  <!-- CHANNELS -->
+  <div class="page active" id="page-channels">
+    <div class="ch-search">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="6.5" cy="6.5" r="5" stroke="currentColor" stroke-width="1.5"/><path d="M10.5 10.5L14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      <input id="chSearchInput" placeholder="Search channels" oninput="filterCh()" autocomplete="off" autocorrect="off">
+    </div>
+    <div class="seg-ctrl">
+      <button class="seg-btn active" onclick="setChSeg(0,this)">All</button>
+      <button class="seg-btn" onclick="setChSeg(1,this)">Favourites</button>
+      <button class="seg-btn" onclick="setChSeg(2,this)">FTA</button>
+      <button class="seg-btn" onclick="setChSeg(3,this)">HD</button>
+    </div>
+    <div id="chListWrap" style="background:var(--card);border-radius:12px;margin:4px 16px;overflow:hidden;"></div>
+    <div style="height:12px;"></div>
+  </div>
+
+  <!-- REMOTE -->
+  <div class="page" id="page-remote">
+    <div class="remote-screen" id="remoteScreen">
+      <div class="remote-screen-ch" id="remChDisp">—</div>
+      <div class="remote-screen-info">
+        <div class="remote-screen-name" id="remNameDisp">Not connected</div>
+        <div class="remote-screen-prog" id="remProgDisp">Connect to your receiver</div>
+      </div>
+    </div>
+    <!-- Power / Mute / Home -->
+    <div class="rpad">
+      <button class="rb red" onclick="rkey('POWER')">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M12 3v9M6.34 6.34a9 9 0 100 11.32" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      </button>
+      <button class="rb" onclick="rkey('MUTE')">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M11 5L6 9H3v6h3l5 4V5z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M17 9l4 4m0-4l-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      </button>
+      <button class="rb" onclick="rkey('HOME')">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M3 12l9-9 9 9M5 10v9a1 1 0 001 1h4v-5h4v5h4a1 1 0 001-1v-9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+    </div>
+    <!-- Vol / Nav / Ch -->
+    <div style="display:flex;gap:10px;margin:0 16px 12px;align-items:center;">
+      <!-- Vol -->
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <button class="rb" style="width:52px;height:52px;" onclick="rkey('VOL+')">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M11 5L6 9H3v6h3l5 4V5z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M19.07 4.93a10 10 0 010 14.14M15.54 8.46a5 5 0 010 7.07" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        </button>
+        <button class="rb" style="width:52px;height:52px;" onclick="rkey('VOL-')">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M11 5L6 9H3v6h3l5 4V5z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M15.54 8.46a5 5 0 010 7.07" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+      <!-- D-pad -->
+      <div style="flex:1;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);gap:6px;aspect-ratio:1;">
+        <div></div>
+        <button class="rb" onclick="rkey('UP')">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M12 19V5m0 0l-7 7m7-7l7 7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <div></div>
+        <button class="rb" onclick="rkey('LEFT')">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M19 12H5m0 0l7 7m-7-7l7-7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <button class="rb blue" onclick="rkey('OK')" style="font-size:16px;font-weight:700;">OK</button>
+        <button class="rb" onclick="rkey('RIGHT')">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M5 12h14m0 0l-7-7m7 7l-7 7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <div></div>
+        <button class="rb" onclick="rkey('DOWN')">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M12 5v14m0 0l7-7m-7 7l-7-7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <div></div>
+      </div>
+      <!-- Ch -->
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <button class="rb" style="width:52px;height:52px;" onclick="rkey('CH+')">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M12 19V5M5 12l7-7 7 7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <button class="rb" style="width:52px;height:52px;" onclick="rkey('CH-')">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M12 5v14M19 12l-7 7-7-7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
+    </div>
+    <!-- Menu / Back / Exit / Info -->
+    <div class="rpad">
+      <button class="rb sm" onclick="rkey('MENU')" style="font-size:14px;font-weight:500;">Menu</button>
+      <button class="rb sm" onclick="rkey('BACK')">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M11 17l-5-5 5-5m8 5H6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <button class="rb sm" onclick="rkey('EXIT')" style="font-size:14px;font-weight:500;">Exit</button>
+    </div>
+    <!-- Numpad -->
+    <div class="numpad">
+      <button class="numkey" onclick="numTap('1')"><span class="digit">1</span><span class="letters"></span></button>
+      <button class="numkey" onclick="numTap('2')"><span class="digit">2</span><span class="letters">ABC</span></button>
+      <button class="numkey" onclick="numTap('3')"><span class="digit">3</span><span class="letters">DEF</span></button>
+      <button class="numkey" onclick="numTap('4')"><span class="digit">4</span><span class="letters">GHI</span></button>
+      <button class="numkey" onclick="numTap('5')"><span class="digit">5</span><span class="letters">JKL</span></button>
+      <button class="numkey" onclick="numTap('6')"><span class="digit">6</span><span class="letters">MNO</span></button>
+      <button class="numkey" onclick="numTap('7')"><span class="digit">7</span><span class="letters">PQRS</span></button>
+      <button class="numkey" onclick="numTap('8')"><span class="digit">8</span><span class="letters">TUV</span></button>
+      <button class="numkey" onclick="numTap('9')"><span class="digit">9</span><span class="letters">WXYZ</span></button>
+      <button class="numkey" onclick="rkey('RECALL')" style="font-size:13px;font-weight:500;color:var(--blue);">Recall</button>
+      <button class="numkey" onclick="numTap('0')"><span class="digit">0</span><span class="letters"></span></button>
+      <button class="numkey" onclick="numBackspace()">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M21 12H9M9 12l5-5M9 12l5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M3 12l4-7h14v14H7L3 12z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
+      </button>
+    </div>
+    <!-- Colour keys -->
+    <div class="colorbts">
+      <button class="colorbtn" style="background:#e74c3c;" onclick="rkey('RED')"></button>
+      <button class="colorbtn" style="background:#27ae60;" onclick="rkey('GREEN')"></button>
+      <button class="colorbtn" style="background:#f1c40f;" onclick="rkey('YELLOW')"></button>
+      <button class="colorbtn" style="background:#2980b9;" onclick="rkey('BLUE_KEY')"></button>
+    </div>
+    <div style="height:12px;"></div>
+  </div>
+
+  <!-- EPG -->
+  <div class="page" id="page-epg">
+    <div class="epg-ch-bar" id="epgChBar"></div>
+    <div id="epgContent"></div>
+    <div style="height:12px;"></div>
+  </div>
+
+  <!-- SIGNAL -->
+  <div class="page" id="page-signal">
+    <div class="sat-grid" id="satGrid"></div>
+    <div class="sig-card">
+      <div class="sig-label">Signal Strength</div>
+      <div class="sig-val" id="sigStrVal">—</div>
+      <div class="sig-bar"><div class="sig-fill" id="sigStrBar" style="width:0%"></div></div>
+    </div>
+    <div class="sig-card">
+      <div class="sig-label">Signal Quality</div>
+      <div class="sig-val" id="sigQualVal">—</div>
+      <div class="sig-bar"><div class="sig-fill" id="sigQualBar" style="width:0%"></div></div>
+    </div>
+    <div class="sig-meta" id="sigMeta"></div>
+    <div style="height:12px;"></div>
+  </div>
+
+  <!-- SETTINGS -->
+  <div class="page" id="page-settings">
+    <!-- Connection status card -->
+    <div class="group" id="connGroup">
+      <div class="group-card">
+        <div class="row" onclick="openConnectSheet()">
+          <div class="status-dot" id="settingsDot"></div>
+          <div class="row-body">
+            <div class="row-title" id="settingsConnTitle">Not connected</div>
+            <div class="row-sub" id="settingsConnSub">Tap to connect to your receiver</div>
+          </div>
+          <div class="row-right">
+            <span id="settingsConnAction" style="color:var(--blue);font-size:15px;">Connect</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="group" id="stbSettingsGroup" style="display:none">
+      <div class="group-label">Display</div>
+      <div class="group-card">
+        <div class="row" onclick="cycleRes()">
+          <div class="row-body"><div class="row-title">Resolution</div></div>
+          <div class="row-right"><span id="setRes" style="font-size:15px;color:var(--label2);">1080p</span>
+            <svg class="chevron" viewBox="0 0 8 13"><path d="M1 1l6 5.5L1 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          </div>
+        </div>
+        <div class="row" onclick="cycleAspect()">
+          <div class="row-body"><div class="row-title">Aspect Ratio</div></div>
+          <div class="row-right"><span id="setAspect" style="font-size:15px;color:var(--label2);">16:9</span>
+            <svg class="chevron" viewBox="0 0 8 13"><path d="M1 1l6 5.5L1 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          </div>
+        </div>
+      </div>
+      <div class="group-label" style="margin-top:20px;">Parental</div>
+      <div class="group-card">
+        <div class="row">
+          <div class="row-body"><div class="row-title">Parental Lock</div></div>
+          <div class="toggle-track" id="togParental" onclick="toggleSetting('parental',this)"><div class="toggle-thumb"></div></div>
+        </div>
+        <div class="row">
+          <div class="row-body"><div class="row-title">Screen Lock</div></div>
+          <div class="toggle-track" id="togScreen" onclick="toggleSetting('screen_lock',this)"><div class="toggle-thumb"></div></div>
+        </div>
+        <div class="row" onclick="changePin()">
+          <div class="row-body"><div class="row-title">Change PIN</div></div>
+          <div class="row-right">
+            <svg class="chevron" viewBox="0 0 8 13"><path d="M1 1l6 5.5L1 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          </div>
+        </div>
+      </div>
+      <div class="group-label" style="margin-top:20px;">Power</div>
+      <div class="group-card">
+        <div class="row" onclick="cycleSleep()">
+          <div class="row-body"><div class="row-title">Sleep Timer</div></div>
+          <div class="row-right"><span id="setSleep" style="font-size:15px;color:var(--label2);">Off</span>
+            <svg class="chevron" viewBox="0 0 8 13"><path d="M1 1l6 5.5L1 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          </div>
+        </div>
+        <div class="row" onclick="powerOff()" style="color:var(--red)">
+          <div class="row-body"><div class="row-title" style="color:var(--red);">Power Off</div></div>
+        </div>
+        <div class="row" onclick="factoryReset()" style="color:var(--red)">
+          <div class="row-body"><div class="row-title" style="color:var(--red);">Factory Reset</div></div>
+        </div>
+      </div>
+    </div>
+    <div style="height:12px;"></div>
+  </div>
+
+</div><!-- end .screen -->
+
+<!-- TAB BAR -->
+<div class="tabbar">
+  <button class="tab-item active" onclick="switchTab('channels',this)">
+    <div class="tab-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M4 6h16M4 10h16M4 14h8M4 18h8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></div>
+    <div class="tab-label">Channels</div>
+  </button>
+  <button class="tab-item" onclick="switchTab('remote',this)">
+    <div class="tab-icon"><svg viewBox="0 0 24 24" fill="none"><rect x="7" y="3" width="10" height="18" rx="3" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="17" r="1" fill="currentColor"/><path d="M10 7h4M10 10h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></div>
+    <div class="tab-label">Remote</div>
+  </button>
+  <button class="tab-item" onclick="switchTab('epg',this)">
+    <div class="tab-icon"><svg viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="17" rx="3" stroke="currentColor" stroke-width="1.8"/><path d="M16 2v4M8 2v4M3 10h18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></div>
+    <div class="tab-label">Guide</div>
+  </button>
+  <button class="tab-item" onclick="switchTab('signal',this)">
+    <div class="tab-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M3 19.5C5 17 8 15 12 15s7 2 9 4.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M6 14C7.5 12 9.5 11 12 11s4.5 1 6 3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M9 10c.8-1 1.8-1.5 3-1.5s2.2.5 3 1.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="12" cy="6" r="1.5" fill="currentColor"/></svg></div>
+    <div class="tab-label">Signal</div>
+  </button>
+  <button class="tab-item" onclick="switchTab('settings',this)">
+    <div class="tab-icon"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.8"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" stroke="currentColor" stroke-width="1.8"/></svg></div>
+    <div class="tab-label">Settings</div>
+  </button>
+</div>
+
+<!-- CONNECT SHEET -->
+<div class="sheet-overlay" id="sheetOverlay" onclick="closeSheet()"></div>
+<div class="sheet" id="connectSheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-title">Connect to Receiver</div>
+  <div class="sheet-sub">Both your phone and receiver must be on the same WiFi network</div>
+
+  <div class="tf-group">
+    <div class="tf-label">Receiver IP Address</div>
+    <div class="tf-card">
+      <input class="tf" id="inputIp" placeholder="192.168.1.100" type="text" pattern="[0-9.]*" inputmode="decimal">
+    </div>
+  </div>
+  <div class="tf-group">
+    <div class="tf-label">Port</div>
+    <div class="tf-card">
+      <input class="tf" id="inputPort" placeholder="9000" type="number" inputmode="numeric" value="9000">
+    </div>
+  </div>
+  <div class="tf-group">
+    <div class="tf-label">Receiver Model</div>
+    <div class="tf-card">
+      <select class="tf" id="inputModel" style="appearance:auto;">
+        <option value="qmax-mst-999">Qmax MST-999</option>
+        <option value="qmax-h8">Qmax MST-999 H8 Mini XR</option>
+        <option value="qmax-h9">Qmax MST-999 H9 Mini XR</option>
+        <option value="qmax-h10">Qmax MST-999 H10 Mini XR</option>
+        <option value="starsat">Starsat SR series</option>
+        <option value="mediastar">MediaStar / Forever</option>
+        <option value="cryptobox">Cryptobox 600HD</option>
+        <option value="other">Other G-MScreen STB</option>
+      </select>
+    </div>
+  </div>
+
+  <div id="connStatusWrap" style="display:none;margin:0 16px 12px;padding:12px;background:var(--card);border-radius:10px;display:none;align-items:center;gap:10px;">
+    <div class="spinner" id="connSpinner"></div>
+    <div id="connStatusText" style="font-size:15px;color:var(--label2);"></div>
+  </div>
+
+  <button class="bigbtn" id="connectBtn" onclick="doConnect()">Connect</button>
+  <button class="bigbtn gray" onclick="closeSheet()">Cancel</button>
+  <div style="height:8px;"></div>
+</div>
+
+<div id="toasts"></div>
+
+<script>
+// ═══════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════
+const S = {
+  connected: false,
+  socket: null,
+  ip: '',
+  port: 9000,
+  model: 'Qmax MST-999',
+  channels: [],
+  currentCh: null,
+  favs: new Set(),
+  chSeg: 0,
+  numBuf: '',
+  numTimer: null,
+  sigTimer: null,
+  selectedSat: 0,
+  sleepIdx: 0,
+  resIdx: 3,
+  aspectIdx: 1,
+  epgChIdx: 0,
+};
+
+// ═══════════════════════════════════════════════
+// PROTOCOL — Real G-MScreen / ALi-tech STB TCP protocol
+// Frames: "Start" + 7-digit-length + "End" + JSON payload
+// Responses: GCDH header (16 bytes) + zlib-compressed JSON body
+// ═══════════════════════════════════════════════
+const STB = {
+  _sock: null,
+  _rxBuf: '',
+  _pendingResolve: null,
+  _pendingReject: null,
+  _headerBuf: null,
+  _bodyExpected: 0,
+  _bodyBufs: [],
+  _bodyReceived: 0,
+  _phase: 'idle', // idle | header | body
+
+  // Format outgoing frame
+  _frame(json) {
+    const str = JSON.stringify(json);
+    const lenStr = ('0000000' + str.length).slice(-7);
+    return 'Start' + lenStr + 'End' + str;
+  },
+
+  // Connect via WebSocket to a local proxy, OR attempt native TCP via WebSocket API
+  // For real use: the user must run a small proxy (e.g. websocat) on their LAN, OR
+  // the app attempts a direct WebSocket upgrade (some STBs support it on port 9000).
+  // If neither works, we show instructions.
+  connect(ip, port) {
+    return new Promise((resolve, reject) => {
+      STB._sock = null;
+      STB._phase = 'idle';
+
+      // Attempt 1: Direct WebSocket (works if STB firmware has WS upgrade)
+      // Attempt 2: Try plain HTTP handshake to detect the STB
+      // We use fetch to probe the STB first (CORS-free in local network for non-cors responses)
+      const wsUrl = `ws://${ip}:${port}`;
+
+      let ws;
+      try {
+        ws = new WebSocket(wsUrl);
+      } catch(e) {
+        reject('WebSocket not supported');
+        return;
+      }
+
+      const timeout = setTimeout(() => {
+        ws.close();
+        reject('timeout');
+      }, 5000);
+
+      ws.binaryType = 'arraybuffer';
+
+      ws.onopen = () => {
+        clearTimeout(timeout);
+        STB._sock = ws;
+        STB._phase = 'handshake';
+        // Send connection handshake (request 998 = identification)
+        const handshake = 'Start0000085End<?xml version=\'1.0\' encoding=\'UTF-8\' standalone=\'yes\' ?><Command request="998" />';
+        ws.send(handshake);
+      };
+
+      ws.onmessage = (ev) => {
+        if (STB._phase === 'handshake') {
+          // STB responds with 108-byte identification packet starting with 0x5b ([)
+          const data = ev.data;
+          let ok = false;
+          if (data instanceof ArrayBuffer) {
+            const view = new Uint8Array(data);
+            ok = (data.byteLength === 108 && view[0] === 0x5b);
+          } else if (typeof data === 'string') {
+            ok = (data.length >= 4); // some STBs respond with JSON
+          }
+          STB._phase = 'idle';
+          if (ok) resolve(data);
+          else reject('bad_handshake');
+        } else {
+          STB._onData(ev.data);
+        }
+      };
+
+      ws.onerror = (e) => {
+        clearTimeout(timeout);
+        reject('ws_error');
+      };
+
+      ws.onclose = () => {
+        if (STB._phase === 'handshake') {
+          clearTimeout(timeout);
+          reject('closed');
+        }
+        STB._phase = 'idle';
+      };
+    });
+  },
+
+  _onData(data) {
+    // Accumulate and parse GCDH header + zlib body
+    if (STB._pendingResolve === null) return;
+
+    if (STB._phase === 'await_header') {
+      // data should be 16-byte GCDH header
+      let view;
+      if (data instanceof ArrayBuffer) {
+        view = new Uint8Array(data);
+      } else {
+        // string fallback: try JSON parse directly
+        STB._phase = 'idle';
+        try { STB._pendingResolve(JSON.parse(data)); }
+        catch(e) { STB._pendingResolve({}); }
+        STB._pendingResolve = null;
+        return;
+      }
+
+      if (view.length < 4 || view[0] !== 0x47) { // 'G'
+        // Not GCDH — try direct JSON
+        STB._phase = 'idle';
+        try {
+          const txt = new TextDecoder().decode(data);
+          STB._pendingResolve(JSON.parse(txt));
+        } catch(e) { STB._pendingResolve({}); }
+        STB._pendingResolve = null;
+        return;
+      }
+
+      STB._bodyExpected = view[4] + view[5] * 256;
+      if (STB._bodyExpected === 0) {
+        STB._phase = 'idle';
+        STB._pendingResolve(null);
+        STB._pendingResolve = null;
+        return;
+      }
+      STB._bodyBufs = [];
+      STB._bodyReceived = 0;
+      STB._phase = 'await_body';
+
+    } else if (STB._phase === 'await_body') {
+      if (!(data instanceof ArrayBuffer)) return;
+      STB._bodyBufs.push(data);
+      STB._bodyReceived += data.byteLength;
+
+      if (STB._bodyReceived >= STB._bodyExpected) {
+        STB._phase = 'idle';
+        const res = STB._pendingResolve;
+        STB._pendingResolve = null;
+
+        // Concatenate buffers
+        const all = new Uint8Array(STB._bodyReceived);
+        let off = 0;
+        for (const b of STB._bodyBufs) {
+          all.set(new Uint8Array(b), off);
+          off += b.byteLength;
+        }
+
+        // Decompress zlib (deflate with header 0x78 0x9c)
+        if (all[0] === 0x78) {
+          STB._decompress(all).then(json => res(json)).catch(() => res(null));
+        } else {
+          try { res(JSON.parse(new TextDecoder().decode(all))); }
+          catch(e) { res(null); }
+        }
+      }
+    }
+  },
+
+  // Decompress zlib using DecompressionStream (supported in modern browsers)
+  async _decompress(data) {
+    try {
+      const ds = new DecompressionStream('deflate');
+      const writer = ds.writable.getWriter();
+      writer.write(data);
+      writer.close();
+      const reader = ds.readable.getReader();
+      const chunks = [];
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        chunks.push(value);
+      }
+      const total = chunks.reduce((n, c) => n + c.length, 0);
+      const out = new Uint8Array(total);
+      let pos = 0;
+      for (const c of chunks) { out.set(c, pos); pos += c.length; }
+      return JSON.parse(new TextDecoder().decode(out));
+    } catch(e) {
+      return null;
+    }
+  },
+
+  // Send a request and wait for response
+  request(json) {
+    return new Promise((resolve, reject) => {
+      if (!STB._sock || STB._sock.readyState !== WebSocket.OPEN) {
+        reject('not_connected'); return;
+      }
+      STB._pendingResolve = resolve;
+      STB._pendingReject = reject;
+      STB._phase = 'await_header';
+      const frame = STB._frame(json);
+      STB._sock.send(frame);
+
+      // Timeout
+      const t = setTimeout(() => {
+        if (STB._pendingResolve === resolve) {
+          STB._pendingResolve = null;
+          STB._phase = 'idle';
+          resolve(null);
+        }
+      }, 4000);
+    });
+  },
+
+  disconnect() {
+    if (STB._sock) { STB._sock.close(); STB._sock = null; }
+  },
+
+  // ── HIGH-LEVEL COMMANDS ──────────────────────
+  getDeviceInfo()     { return STB.request({request:'15'}); },
+  getChannels(from, to) { return STB.request({request:'0', FromIndex: String(from), ToIndex: String(to)}); },
+  getCurrentChannel() { return STB.request({request:'3'}); },
+  getSatellites()     { return STB.request({request:'22'}); },
+  getSignal()         { return STB.request({request:'403'}); },
+  getEPG(serviceId)   { return STB.request({request:'16', ServiceID: serviceId}); },
+
+  sendKey(keyVal) {
+    return STB.request({request:'1040', array:[{KeyValue: String(keyVal)}]});
+  },
+
+  switchChannel(serviceId) {
+    return STB.request({request:'1000', TvState:'0', ProgramId: serviceId});
+  },
+
+  setFav(serviceId, fav) {
+    return STB.request({request:'1003', ServiceID: serviceId, Fav: fav ? '1' : '0'});
+  },
+
+  renameChannel(serviceId, name) {
+    return STB.request({request:'1005', ServiceID: serviceId, ServiceName: name});
+  },
+
+  // Settings
+  setSetting(key, val) { return STB.request({request:'2000', key, value: val}); },
+};
+
+// Key code map (ALi STB remote key codes)
+const KEY_CODES = {
+  POWER: 116, MUTE: 113, HOME: 102, MENU: 139, BACK: 158, EXIT: 174,
+  UP: 103, DOWN: 108, LEFT: 105, RIGHT: 106, OK: 352,
+  VOL_UP: 115, VOL_DOWN: 114, CH_UP: 402, CH_DOWN: 403,
+  RED: 398, GREEN: 399, YELLOW: 400, BLUE_KEY: 401,
+  NUM_0:11, NUM_1:2, NUM_2:3, NUM_3:4, NUM_4:5, NUM_5:6,
+  NUM_6:7, NUM_7:8, NUM_8:9, NUM_9:10,
+  RECALL: 364, INFO: 358,
+};
+
+// ═══════════════════════════════════════════════
+// NAVIGATION
+// ═══════════════════════════════════════════════
+let curTab = 'channels';
+function switchTab(tab, el) {
+  document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + tab).classList.add('active');
+  curTab = tab;
+
+  const titles = {channels:'Channels', remote:'Remote', epg:'TV Guide', signal:'Signal Finder', settings:'Settings'};
+  document.getElementById('navTitle').textContent = titles[tab];
+  document.getElementById('navLeft').textContent = '';
+  document.getElementById('navRight').textContent = tab === 'channels' ? 'Edit' : '';
+
+  if (tab === 'epg') renderEPG();
+  if (tab === 'signal') startSignal();
+  else stopSignal();
+}
+function navLeftTap() {}
+function navRightTap() {
+  if (curTab === 'channels') showToast('Edit mode coming soon');
+}
+
+// ═══════════════════════════════════════════════
+// CONNECT SHEET
+// ═══════════════════════════════════════════════
+function openConnectSheet() {
+  document.getElementById('sheetOverlay').classList.add('open');
+  document.getElementById('connectSheet').classList.add('open');
+}
+function closeSheet() {
+  document.getElementById('sheetOverlay').classList.remove('open');
+  document.getElementById('connectSheet').classList.remove('open');
+  document.getElementById('connStatusWrap').style.display = 'none';
+}
+
+async function doConnect() {
+  const ip = document.getElementById('inputIp').value.trim();
+  const port = parseInt(document.getElementById('inputPort').value) || 9000;
+  const modelEl = document.getElementById('inputModel');
+  const model = modelEl.options[modelEl.selectedIndex].text;
+
+  if (!ip || !/^\d{1,3}(\.\d{1,3}){3}$/.test(ip)) {
+    showToast('Enter a valid IP address'); return;
+  }
+
+  S.ip = ip; S.port = port; S.model = model;
+
+  const btn = document.getElementById('connectBtn');
+  const statusWrap = document.getElementById('connStatusWrap');
+  const statusText = document.getElementById('connStatusText');
+
+  btn.disabled = true;
+  btn.textContent = 'Connecting…';
+  statusWrap.style.display = 'flex';
+  statusText.textContent = 'Connecting to ' + ip + ':' + port + '…';
+
+  try {
+    statusText.textContent = 'Opening TCP connection…';
+    await STB.connect(ip, port);
+
+    statusText.textContent = 'Getting device info…';
+    const info = await STB.getDeviceInfo();
+
+    statusText.textContent = 'Loading channels…';
+    await loadChannels();
+
+    S.connected = true;
+    onConnected(info);
+    closeSheet();
+    showToast('Connected to ' + model);
+
+  } catch(err) {
+    const msgs = {
+      timeout: 'Connection timed out. Check IP and make sure the receiver is on.',
+      ws_error: 'Cannot reach receiver. Check:\n• Same WiFi network\n• Receiver is powered on\n• IP address is correct',
+      closed: 'Connection refused by receiver.',
+      not_connected: 'Not connected.',
+      bad_handshake: 'Receiver responded but handshake failed.',
+    };
+    const msg = msgs[err] || ('Connection failed: ' + err);
+    showToast(msg);
+    statusWrap.style.display = 'none';
+  }
+
+  btn.disabled = false;
+  btn.textContent = 'Connect';
+}
+
+async function loadChannels() {
+  S.channels = [];
+  let from = 0;
+  // Load in batches of 100 until empty
+  while (true) {
+    const batch = await STB.getChannels(from, from + 99);
+    if (!batch || !Array.isArray(batch) || batch.length === 0) break;
+    S.channels = S.channels.concat(batch);
+    if (batch.length < 100) break;
+    from += 100;
+    if (from > 9900) break; // safety
+  }
+}
+
+function onConnected(info) {
+  // Update settings page
+  document.getElementById('settingsDot').classList.add('online');
+  document.getElementById('settingsConnTitle').textContent = S.model;
+  document.getElementById('settingsConnSub').textContent = S.ip + ' · ' + (info && info[0] ? info[0].ProductName || '' : '');
+  document.getElementById('settingsConnAction').textContent = 'Disconnect';
+  document.getElementById('stbSettingsGroup').style.display = '';
+
+  renderChannels();
+  updateRemoteScreen();
+}
+
+function disconnect() {
+  STB.disconnect();
+  S.connected = false; S.channels = []; S.currentCh = null;
+  document.getElementById('settingsDot').classList.remove('online');
+  document.getElementById('settingsConnTitle').textContent = 'Not connected';
+  document.getElementById('settingsConnSub').textContent = 'Tap to connect to your receiver';
+  document.getElementById('settingsConnAction').textContent = 'Connect';
+  document.getElementById('stbSettingsGroup').style.display = 'none';
+  renderChannels();
+  updateRemoteScreen();
+  showToast('Disconnected');
+}
+
+// ═══════════════════════════════════════════════
+// CHANNELS
+// ═══════════════════════════════════════════════
+function renderChannels() {
+  const wrap = document.getElementById('chListWrap');
+  const q = document.getElementById('chSearchInput').value.toLowerCase().trim();
+  let list = S.channels;
+
+  if (!S.connected || list.length === 0) {
+    wrap.innerHTML = `<div style="padding:40px 20px;text-align:center;color:var(--label2);font-size:15px;">
+      ${S.connected ? 'No channels found' : 'Connect to your receiver to see channels'}
+    </div>`;
+    return;
+  }
+
+  if (q) list = list.filter(c => (c.ServiceName||'').toLowerCase().includes(q));
+  if (S.chSeg === 1) list = list.filter(c => S.favs.has(c.ServiceID));
+  if (S.chSeg === 2) list = list.filter(c => c.Scramble == 0);
+  if (S.chSeg === 3) list = list.filter(c => c.HD == 1);
+
+  if (list.length === 0) {
+    wrap.innerHTML = `<div style="padding:40px 20px;text-align:center;color:var(--label2);font-size:15px;">No channels match</div>`;
+    return;
+  }
+
+  const avatarColors = ['#e74c3c','#3498db','#27ae60','#9b59b6','#f39c12','#1abc9c','#e67e22','#2ecc71','#c0392b','#16a085'];
+
+  wrap.innerHTML = list.map((c, i) => {
+    const nm = c.ServiceName || 'Channel ' + (c.UserNum || i+1);
+    const initials = nm.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+    const color = avatarColors[i % avatarColors.length];
+    const isFav = S.favs.has(c.ServiceID);
+    const isPlaying = S.currentCh && S.currentCh.ServiceID === c.ServiceID;
+    const isHD = c.HD == 1;
+    const isFree = c.Scramble == 0;
+    return `<div class="ch-row" onclick="switchCh('${c.ServiceID}')">
+      <div class="ch-num">${c.UserNum || i+1}</div>
+      <div class="ch-avatar" style="background:${color}">${initials}</div>
+      <div class="ch-info">
+        <div class="ch-name">${nm}</div>
+        <div class="ch-meta">${c.ServiceID || ''}</div>
+      </div>
+      ${isHD ? '<span class="ch-badge hd">HD</span>' : ''}
+      ${isFree ? '<span class="ch-badge">FTA</span>' : '<span class="ch-badge enc">ENC</span>'}
+      <div class="ch-playing ${isPlaying?'on':''}">
+        <svg viewBox="0 0 24 24" fill="none"><rect x="3" y="6" width="4" height="12" rx="1" fill="var(--blue)"/><rect x="10" y="3" width="4" height="18" rx="1" fill="var(--blue)"/><rect x="17" y="8" width="4" height="8" rx="1" fill="var(--blue)"/></svg>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function setChSeg(idx, el) {
+  S.chSeg = idx;
+  document.querySelectorAll('.seg-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  renderChannels();
+}
+function filterCh() { renderChannels(); }
+
+async function switchCh(serviceId) {
+  if (!S.connected) { openConnectSheet(); return; }
+  const ch = S.channels.find(c => c.ServiceID === serviceId);
+  if (!ch) return;
+  S.currentCh = ch;
+  renderChannels();
+  updateRemoteScreen();
+  showToast('Switching to ' + (ch.ServiceName || serviceId));
+  try {
+    await STB.switchChannel(serviceId);
+  } catch(e) {
+    showToast('Failed to switch channel');
+  }
+}
+
+// ═══════════════════════════════════════════════
+// REMOTE
+// ═══════════════════════════════════════════════
+function updateRemoteScreen() {
+  if (!S.connected) {
+    document.getElementById('remChDisp').textContent = '—';
+    document.getElementById('remNameDisp').textContent = 'Not connected';
+    document.getElementById('remProgDisp').textContent = 'Connect to your receiver';
+    return;
+  }
+  if (S.currentCh) {
+    document.getElementById('remChDisp').textContent = String(S.currentCh.UserNum || '—');
+    document.getElementById('remNameDisp').textContent = S.currentCh.ServiceName || '—';
+    document.getElementById('remProgDisp').textContent = 'Live';
+  } else {
+    document.getElementById('remChDisp').textContent = '—';
+    document.getElementById('remNameDisp').textContent = S.model;
+    document.getElementById('remProgDisp').textContent = 'Connected · ' + S.ip;
+  }
+}
+
+async function rkey(name) {
+  if (!S.connected) { showToast('Not connected'); return; }
+
+  // Map name to ALi key code
+  const codeMap = {
+    POWER: 116, MUTE: 113, HOME: 102, MENU: 139, BACK: 158, EXIT: 174,
+    UP: 103, DOWN: 108, LEFT: 105, RIGHT: 106, OK: 352,
+    'VOL+': 115, 'VOL-': 114, 'CH+': 402, 'CH-': 403,
+    RED: 398, GREEN: 399, YELLOW: 400, BLUE_KEY: 401,
+    RECALL: 364, INFO: 358,
+  };
+  const code = codeMap[name];
+  if (code) {
+    try { await STB.sendKey(code); } catch(e) {}
+  }
+  // Local feedback for CH+/CH-
+  if (name === 'CH+') stepCh(1);
+  if (name === 'CH-') stepCh(-1);
+}
+
+function stepCh(dir) {
+  if (!S.channels.length) return;
+  const idx = S.currentCh ? S.channels.findIndex(c => c.ServiceID === S.currentCh.ServiceID) : -1;
+  const next = S.channels[(idx + dir + S.channels.length) % S.channels.length];
+  if (next) { S.currentCh = next; updateRemoteScreen(); }
+}
+
+function numTap(d) {
+  clearTimeout(S.numTimer);
+  S.numBuf += d;
+  document.getElementById('remChDisp').textContent = S.numBuf;
+  if (S.numBuf.length >= 4) { gotoNumCh(); return; }
+  S.numTimer = setTimeout(gotoNumCh, 2000);
+}
+function numBackspace() {
+  S.numBuf = S.numBuf.slice(0, -1);
+  document.getElementById('remChDisp').textContent = S.numBuf || '—';
+  clearTimeout(S.numTimer);
+}
+async function gotoNumCh() {
+  const num = parseInt(S.numBuf, 10);
+  S.numBuf = '';
+  const ch = S.channels.find(c => c.UserNum == num);
+  if (ch) {
+    S.currentCh = ch; updateRemoteScreen();
+    if (S.connected) { try { await STB.switchChannel(ch.ServiceID); } catch(e) {} }
+  } else {
+    showToast('Channel ' + num + ' not found');
+    updateRemoteScreen();
+  }
+}
+
+// ═══════════════════════════════════════════════
+// EPG
+// ═══════════════════════════════════════════════
+const EPG_DEMO = [
+  {time:'07:00',title:'Morning Prayer',desc:'',dur:30,pct:0},
+  {time:'07:30',title:'News Summary',desc:'Latest headlines',dur:30,pct:0},
+  {time:'08:00',title:'Morning Show',desc:'Talk show with guests and discussion.',dur:120,pct:0},
+  {time:'10:00',title:'Documentary',desc:'Nature and wildlife.',dur:60,pct:100},
+  {time:'11:00',title:'Cooking Programme',desc:'Traditional recipes.',dur:60,pct:72},
+  {time:'12:00',title:'Midday News',desc:'Full news with weather.',dur:30,pct:0,live:true},
+  {time:'12:30',title:'Drama Series',desc:'Episode 14 — A gripping story.',dur:60,pct:0},
+  {time:'13:30',title:'Film: The Journey',desc:'Award-winning drama.',dur:120,pct:0},
+  {time:'15:30',title:'Sports',desc:'Match highlights and analysis.',dur:60,pct:0},
+  {time:'16:30',title:'Children\'s Hour',desc:'Educational fun.',dur:60,pct:0},
+  {time:'17:30',title:'Evening News',desc:'',dur:30,pct:0},
+  {time:'18:00',title:'Prime Drama',desc:'Season finale.',dur:60,pct:0},
+  {time:'19:00',title:'Talk Show',desc:'Celebrity interviews.',dur:60,pct:0},
+  {time:'20:00',title:'Main News',desc:'',dur:30,pct:0},
+  {time:'20:30',title:'Feature Film',desc:'International blockbuster.',dur:120,pct:0},
+  {time:'22:30',title:'Late Night',desc:'Comedy and entertainment.',dur:90,pct:0},
+];
+
+function renderEPG() {
+  // Channel selector
+  const bar = document.getElementById('epgChBar');
+  let chNames = S.channels.length > 0
+    ? S.channels.slice(0,12).map(c => c.ServiceName || '')
+    : ['Channel 1','Channel 2','Channel 3','Channel 4'];
+
+  bar.innerHTML = chNames.map((n,i) =>
+    `<button class="epg-ch-pill ${i===S.epgChIdx?'active':''}" onclick="setEpgCh(${i},this)">${n}</button>`
+  ).join('');
+
+  renderEPGContent();
+}
+
+function setEpgCh(i, el) {
+  S.epgChIdx = i;
+  document.querySelectorAll('.epg-ch-pill').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  renderEPGContent();
+}
+
+function renderEPGContent() {
+  const cont = document.getElementById('epgContent');
+  const nowIdx = EPG_DEMO.findIndex(e => e.pct > 0 && e.pct < 100);
+
+  cont.innerHTML = EPG_DEMO.map((e, i) => {
+    const isNow = i === nowIdx;
+    const isPast = i < nowIdx;
+    if (isNow) {
+      return `<div class="epg-now-card">
+        <div class="epg-time">${e.time} · <span style="background:var(--red);color:#fff;font-size:11px;padding:2px 6px;border-radius:4px;font-weight:600;">LIVE</span></div>
+        <div class="epg-title-text" style="font-size:16px;font-weight:600;">${e.title}</div>
+        <div class="epg-desc-text">${e.desc}</div>
+        <div class="epg-bar" style="margin-top:10px;"><div class="epg-bar-fill" style="width:${e.pct}%"></div></div>
+      </div>`;
+    }
+    return `<div class="epg-prog" style="${isPast?'opacity:0.4':''}">
+      <div class="epg-time">${e.time}</div>
+      <div class="epg-title-text">${e.title}</div>
+      ${e.desc ? `<div class="epg-desc-text">${e.desc}</div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════════════
+// SIGNAL FINDER
+// ═══════════════════════════════════════════════
+const SATS_DEMO = [
+  {name:'Nilesat 201',pos:'7°W',freq:'11900',pol:'V',sr:'27500'},
+  {name:'Arabsat 5C',pos:'20°E',freq:'11919',pol:'H',sr:'27500'},
+  {name:'Hotbird 13E',pos:'13°E',freq:'11862',pol:'H',sr:'27500'},
+  {name:'Astra 19.2E',pos:'19.2°E',freq:'12149',pol:'H',sr:'27500'},
+  {name:'Es\'hail 1',pos:'25.5°E',freq:'11938',pol:'V',sr:'27500'},
+  {name:'SES 5',pos:'5°E',freq:'11977',pol:'V',sr:'30000'},
+];
+
+function renderSatGrid() {
+  document.getElementById('satGrid').innerHTML = SATS_DEMO.map((s,i) =>
+    `<div class="sat-pill ${i===S.selectedSat?'sel':''}" onclick="selectSat(${i})">
+      <div class="sat-pill-name">${s.name}</div>
+      <div class="sat-pill-pos">${s.pos}</div>
+    </div>`
+  ).join('');
+}
+
+function selectSat(i) {
+  S.selectedSat = i;
+  renderSatGrid();
+  updateSigMeta();
+}
+
+function updateSigMeta() {
+  const s = SATS_DEMO[S.selectedSat];
+  document.getElementById('sigMeta').innerHTML = [
+    ['Satellite', s.name], ['LNB', 'Universal'],
+    ['Frequency', s.freq + ' MHz'], ['Polarisation', s.pol],
+    ['Symbol Rate', s.sr + ' kS/s'], ['BER', '—'],
+  ].map(([k,v]) => `<div class="sig-meta-item"><div class="sig-meta-k">${k}</div><div class="sig-meta-v" id="smv-${k.replace(' ','')}">${v}</div></div>`).join('');
+}
+
+function startSignal() {
+  renderSatGrid(); updateSigMeta();
+  stopSignal();
+  pollSignal();
+  S.sigTimer = setInterval(pollSignal, 1200);
+}
+
+function stopSignal() {
+  clearInterval(S.sigTimer); S.sigTimer = null;
+}
+
+async function pollSignal() {
+  let str = 0, qual = 0;
+  if (S.connected) {
+    try {
+      const r = await STB.getSignal();
+      if (r && r[0]) {
+        str = parseInt(r[0].Strength) || 0;
+        qual = parseInt(r[0].Quality) || 0;
+      }
+    } catch(e) {}
+  } else {
+    // Demo values
+    str = 0; qual = 0;
+  }
+
+  const strEl = document.getElementById('sigStrVal');
+  const qualEl = document.getElementById('sigQualVal');
+  const strBar = document.getElementById('sigStrBar');
+  const qualBar = document.getElementById('sigQualBar');
+
+  if (strEl) {
+    strEl.textContent = S.connected ? str + '%' : '—';
+    qualEl.textContent = S.connected ? qual + '%' : '—';
+    strBar.style.width = str + '%';
+    qualBar.style.width = qual + '%';
+    strBar.className = 'sig-fill' + (str > 60 ? '' : str > 30 ? ' mid' : ' low');
+    qualBar.className = 'sig-fill' + (qual > 60 ? '' : qual > 30 ? ' mid' : ' low');
+  }
+}
+
+// ═══════════════════════════════════════════════
+// SETTINGS ACTIONS
+// ═══════════════════════════════════════════════
+const RES = ['576i','720p','1080i','1080p','4K UHD'];
+const ASPECTS = ['4:3','16:9','Auto'];
+const SLEEPS = ['Off','15 min','30 min','1 hour','2 hours'];
+
+async function cycleRes() {
+  S.resIdx = (S.resIdx+1) % RES.length;
+  document.getElementById('setRes').textContent = RES[S.resIdx];
+  if (S.connected) await STB.setSetting('resolution', RES[S.resIdx]);
+  showToast('Resolution: ' + RES[S.resIdx]);
+}
+async function cycleAspect() {
+  S.aspectIdx = (S.aspectIdx+1) % ASPECTS.length;
+  document.getElementById('setAspect').textContent = ASPECTS[S.aspectIdx];
+  if (S.connected) await STB.setSetting('aspect', ASPECTS[S.aspectIdx]);
+  showToast('Aspect ratio: ' + ASPECTS[S.aspectIdx]);
+}
+async function cycleSleep() {
+  S.sleepIdx = (S.sleepIdx+1) % SLEEPS.length;
+  document.getElementById('setSleep').textContent = SLEEPS[S.sleepIdx];
+  if (S.connected) await STB.setSetting('sleep_timer', SLEEPS[S.sleepIdx]);
+  showToast('Sleep timer: ' + SLEEPS[S.sleepIdx]);
+}
+async function toggleSetting(key, el) {
+  el.classList.toggle('on');
+  const on = el.classList.contains('on');
+  if (S.connected) await STB.setSetting(key, on ? '1' : '0');
+  showToast(key.replace('_',' ') + ': ' + (on ? 'On' : 'Off'));
+}
+async function changePin() {
+  const p = prompt('Enter new 4-digit PIN:');
+  if (!p) return;
+  if (!/^\d{4}$/.test(p)) { showToast('PIN must be 4 digits'); return; }
+  if (S.connected) await STB.setSetting('pin', p);
+  showToast('PIN changed');
+}
+async function powerOff() {
+  if (!confirm('Power off the receiver?')) return;
+  if (S.connected) await STB.sendKey(116); // POWER
+  disconnect();
+}
+async function factoryReset() {
+  if (!confirm('Factory reset will erase ALL data on the receiver. Continue?')) return;
+  if (S.connected) await STB.setSetting('factory_reset', '1');
+  showToast('Factory reset sent');
+}
+
+// ═══════════════════════════════════════════════
+// TOAST
+// ═══════════════════════════════════════════════
+function showToast(msg) {
+  const wrap = document.getElementById('toasts');
+  const d = document.createElement('div');
+  d.className = 'toast';
+  d.textContent = msg;
+  wrap.appendChild(d);
+  setTimeout(() => {
+    d.style.transition = 'opacity .3s';
+    d.style.opacity = '0';
+    setTimeout(() => d.remove(), 300);
+  }, 2800);
+}
+
+// ═══════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════
+// On load, show connect sheet after brief delay
+setTimeout(openConnectSheet, 400);
+renderEPG();
+</script>
+</body>
+</html>
